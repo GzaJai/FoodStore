@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useUIStore } from '../stores/uiStore'
 import { Card, CardContent, Button, Badge, EmptyState } from '../components/ui'
 import { Upload, Users, Bike, UtensilsCrossed, ShoppingBag, Home, Coffee, Plus, Package } from 'lucide-react'
 
@@ -24,7 +23,6 @@ const categories: ClientCategory[] = [
 ]
 
 export default function ClientLogoCatalog() {
-  const { selectedLocation } = useUIStore()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   const selectedCat = categories.find((c) => c.id === selectedCategory)
@@ -35,9 +33,7 @@ export default function ClientLogoCatalog() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Cat. Logo de Clientes</h1>
-          <p className="text-gray-500 text-sm">
-            {selectedLocation} • Gestioná los logos y categorías de clientes
-          </p>
+          <p className="text-gray-500 text-sm">Gestioná los logos y categorías de clientes</p>
         </div>
         <Badge variant="default" size="md">LOCAL</Badge>
       </div>

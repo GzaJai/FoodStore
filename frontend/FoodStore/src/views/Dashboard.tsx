@@ -32,7 +32,7 @@ const quickActions = [
 ]
 
 export default function Dashboard() {
-  const { selectedLocation, setCurrentView } = useUIStore()
+  const { setCurrentView } = useUIStore()
   const { orders, updateStatus } = useOrderStore()
   const [selectedDate] = useState(new Date().toISOString().split('T')[0])
 
@@ -51,7 +51,6 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-gray-500 text-sm">
-            {selectedLocation} •{' '}
             {new Date().toLocaleDateString('es-AR', {
               weekday: 'long',
               year: 'numeric',
@@ -153,7 +152,7 @@ export default function Dashboard() {
             <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200">
               <div className="flex items-center gap-2 mb-2">
                 <Store size={18} className="text-orange-500" />
-                <span className="font-medium text-orange-800 text-sm">{selectedLocation}</span>
+                <span className="font-medium text-orange-800 text-sm">FoodStore</span>
               </div>
               <p className="text-xs text-orange-600">Local activo • Sistema operativo normal</p>
             </div>

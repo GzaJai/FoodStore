@@ -6,12 +6,12 @@ import Dashboard from './views/Dashboard'
 import OrderManagement from './views/OrderManagement'
 import KDS from './views/KDS'
 import ClientLogoCatalog from './views/ClientLogoCatalog'
+import Profile from './views/Profile'
 
 export default function App() {
   const { currentView } = useUIStore()
   const { isAuthenticated } = useAuthStore()
 
-  // Si no está autenticado, mostrar login
   if (!isAuthenticated && currentView !== 'login') {
     return <Login />
   }
@@ -28,6 +28,8 @@ export default function App() {
         return <KDS />
       case 'client-logos':
         return <ClientLogoCatalog />
+      case 'profile':
+        return <Profile />
       default:
         return <Dashboard />
     }

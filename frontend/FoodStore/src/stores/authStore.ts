@@ -4,7 +4,9 @@ interface User {
   id: string
   name: string
   email: string
+  phone: string
   role: 'admin' | 'cook' | 'cashier' | 'manager'
+  avatar?: string
 }
 
 interface AuthState {
@@ -13,6 +15,14 @@ interface AuthState {
   isLoading: boolean
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
+  updateUser: (data: Partial<User>) => void
+}
+
+const roleLabels: Record<string, string> = {
+  admin: 'Administrador',
+  cook: 'Cocina',
+  cashier: 'Caja',
+  manager: 'Gerente',
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -21,16 +31,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   login: async (email: string, password: string) => {
     set({ isLoading: true })
-    // Simulación de login
     await new Promise((resolve) => setTimeout(resolve, 800))
-    
+
     if (email && password) {
+      const isKitchen = email.includes('cocina') || email.includes('kitchen')
       set({
         user: {
           id: '1',
-          name: 'Admin User',
+          name: email.includes('admin') ? 'Admin User' : email.includes('cocina') ? 'Carlos Cocina' : 'Usuario FoodStore',
           email,
-          role: 'admin',
+          phone: '+54 9 11 1234-5678',
+          role: isKitchen ? 'cook' : 'admin',
         },
         isAuthenticated: true,
         isLoading: false,
@@ -41,4 +52,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     return false
   },
   logout: () => set({ user: null, isAuthenticated: false }),
+  updateUser: (data) => set((state) => ({
+    user: state.user ? { ...state.user, ...data } : null,
+  })),
 }))
+
+export { roleLabels }

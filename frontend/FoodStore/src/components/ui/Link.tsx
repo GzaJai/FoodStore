@@ -18,7 +18,7 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       <a
         ref={ref}
         className={`
-          inline-flex items-center gap-1 text-sm font-medium transition-colors
+          inline-flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer
           ${variantStyles[variant]}
           ${underline ? 'underline underline-offset-4' : ''}
           ${className}

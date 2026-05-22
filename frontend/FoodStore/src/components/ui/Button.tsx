@@ -52,7 +52,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={`
           inline-flex items-center justify-center font-medium transition-colors
           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-          disabled:cursor-not-allowed
+          disabled:cursor-not-allowed cursor-pointer
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${fullWidth ? 'w-full' : ''}
