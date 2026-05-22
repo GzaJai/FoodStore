@@ -1,0 +1,44 @@
+# Análisis de cat_logo_de_clientes_foodstore_digital_screen.png
+
+## Descripción General
+Pantalla de gestión visual para categorizar clientes y asignarles logos personalizados en el sistema FoodStore Digital. Pertenece al módulo de administración de clientes y branding.
+
+## Elementos de la Interfaz
+
+### Barra Superior
+- **Logo FoodStore**: Superior izquierdo, identifica la marca del sistema
+- **Selector de empresa": Dropdown centrado con la etiqueta "Mostrando:" - permite cambiar entre diferentes locales/empresas del grupo
+- **Nombre del local actual": "Digital Test" - muestra el establecimiento seleccionado
+- **Avatar de usuario": Superior derecho, permite acceso al perfil del administrador
+- **Sello "LOCAL": Sobre fondo naranja - identifica que se está trabajando en ambiente local/de pruebas
+
+### Panel Principal
+- **Título": "Cat. Logo de Clientes" - indica la funcionalidad específica de esta pantalla
+- **Tarjetas de categorías": Disposición en grid (3 columnas) con las siguientes tarjetas:
+  - **TODOS**: Tarjeta por defecto para acceder a todos los clientes
+  - **NO AFILIADO**: Tarjeta para clientes sin afiliación
+  - **DELIVERY": Tarjeta con logo de moto - categoría para pedidos delivery
+  - **MESAS**: Tarjeta con icono de mesa - categoría para pedidos en mesas
+  - **DINE IN": Tarjeta amarilla con cubiertos - servicio de consumo en el local
+  - **TAKE AWAY": Tarjeta con bolsa de compra - pedidos para llevar
+  - **DOMICILIO FIJO": Tarjeta gris con casa - para direcciones registradas
+
+### Funcionalidad
+- **Asignación visual de logos**: Cada categoría permite subir/asignar un logo haciendo clic en la tarjeta
+- **Gestión por categorías**: Organización de clientes basada en tipo de servicio/afiliación
+- **Experiencia táctil**: Diseño adaptado para uso en tablets o dispositivos touch en punto de venta
+- **Branding personalizable**: Permite mantener coherencia visual entre el sistema y la identidad de cada local
+
+## Contexto de Uso
+Esta pantalla se utiliza típicamente en:
+1. Configuración inicial del sistema en un nuevo local
+2. Actualización de branding cuando cambian las categorías de servicio
+3. Gestión multi-local donde cada establecimiento puede tener diferentes categorías activas
+4. Preparación para diferentes tipos de pedidos en entornos omnicanal (delivery, take away, etc.)
+
+## Características Técnicas
+- Diseño responsive adaptado a tablets POS
+- Sistema de categorías configurable
+- Integración con sistema de subida de archivos para logos
+- Base de datos relacional para asociar clientes con categorías
+- Posible integración con sistema de impresión de tickets/configuración de puntos de venta

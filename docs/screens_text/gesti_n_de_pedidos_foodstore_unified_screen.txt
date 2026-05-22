@@ -1,0 +1,83 @@
+# Análisis de gesti_n_de_pedidos_foodstore_unified_screen.txt
+
+## Descripción General
+Interfaz de gestión de pedidos del sistema FoodStore Unified que implementa un panel Kanban para seguimiento visual del estado de cada pedido. Diseñada para optimizar el flujo de trabajo en restaurantes con múltiples pedidos simultáneos.
+
+## Elementos de la Interfaz
+
+### Barra Superior
+- **Logo FoodStore**: Esquina superior izquierda
+- **Selector de fechas**: Permite filtrar pedidos por rango de fechas
+- **Campo de búsqueda**: Para localizar pedidos específicos por número, cliente o contenido
+- **Botón Actualizar**: Icono de flecha circular para refrescar la lista de pedidos
+- **Selector de canales**: Dropdown para filtrar pedidos por origen (Delivery, Mesa, Take Away)
+- **Botón Nuevos Pedidos**: Acceso rápido para registrar pedidos manuales
+- **Botón Estadísticas**: Gráfico circular para acceder a métricas de pedidos
+
+### Columnas Kanban (Estados)
+Sistema organizado en 6 columnas principales que representan el flujo de trabajo:
+
+1. **POR PREPARAR** (color rojo)
+   - Pedidos recién ingresados que esperan ser atendidos
+   - Pedido #99 para cliente "mayra galarza" (
+   - Pedido #98 múltiple con varios items
+   - Botón "Preparar" en cada tarjeta
+
+2. **CANCELADOS** (color gris)
+   - Pedidos que fueron anulados
+   - Pedido #86 de "mauro campos" con ítem "Coca cola"
+
+3. **EN PREPARACION** (color azul)
+   - Pedidos que están siendo elaborados
+   - Pedido #95 de "ezequiel hammel"
+
+4. **LISTOS PARA RETIRAR** (color verde claro)
+   - Pedidos completados esperando ser retirados
+   - Pedido #93 de "nico usuriaga"
+   - Botón "Facturar" disponible
+
+5. **ENVIADOS** (color morado)
+   - Pedidos entregados a delivery o en camino
+   - Pedido #91 de "sofia depetris"
+
+6. **FACTURADOS** (color verde oscuro)
+   - Pedidos completados y facturados
+   - Pedido #90 de "fiorella godoy"
+
+### Detalle de Tarjetas
+Cada tarjeta de pedido contiene:
+- Número de pedido en grande (#)
+- Nombre del cliente
+- Tiempo transcurrido desde el ingreso (en algunos casos)
+- Lista de items pedidos con cantidades
+- Icono de información para ver detalle completo
+- Botón de acción según el estado (Preparar, Facturar, etc.)
+
+## Funcionalidades Principales
+1. **Flujo visual de pedidos**: Sistema Kanban que permite arrastrar y soltar pedidos entre estados
+2. **Gestión multi-canal**: Filtros para ver pedidos por origen (delivery, mesa, take away)
+3. **Búsqueda avanzada**: Localización rápida de pedidos por cliente, número o contenido
+4. **Temporización**: Monitoreo del tiempo transcurrido en cada estado
+5. **Integración con cocina**: Conexión con sistema KDS (Kitchen Display System)
+6. **Facturación**: Proceso integrado desde la preparación hasta la facturación
+7. **Historial**: Registro completo de pedidos con filtro por fechas
+
+## Contexto de Uso
+Esta pantalla es utilizada por:
+- Gerentes de restaurante para monitorear el flujo de trabajo
+- Personal de recepción para gestionar pedidos de delivery/take away
+- Cocineros para organizar la preparación de pedidos
+- Personal de caja para facturar pedidos listos
+- Supervisores para analizar eficiencia operativa
+
+## Características Técnicas
+- Implementación Drag & Drop para el sistema Kanban (HTML5/JavaScript)
+- Actualización en tiempo real mediante WebSockets
+- Base de datos con estados persistentes de pedidos
+- Sistema de alertas para pedidos con demoras excesivas
+- Integración con TPV (Terminal Punto de Venta)
+- Soporte para múltiples usuarios con permisos por rol
+- Diseño responsive adaptable a tablets en cocina
+- API para integración con sistemas de delivery externos (Rappi, PedidosYa, etc.)
+- Sistema de logs para auditoría de cambios de estado
+- Motor de búsqueda con índice full-text sobre pedidos

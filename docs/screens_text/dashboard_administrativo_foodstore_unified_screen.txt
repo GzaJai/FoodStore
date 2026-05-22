@@ -1,0 +1,68 @@
+# Análisis de dashboard_administrativo_foodstore_unified_screen.png
+
+## Descripción General
+Dashboard unificado del sistema administrativo FoodStore que proporciona una visión integral del negocio con métricas clave, pedidos recientes y controles operativos. Pantalla principal para administradores y gerentes.
+
+## Elementos de la Interfaz
+
+### Sección Superior
+- **Header con logo**: FoodStore centrado con fondo naranja degradado
+- **Selector de local**: Dropdown para cambiar entre locales de la cadena (actualmente seleccionado "Ciudad Universitaria")
+- **Navegación principal**: Botones "Inicio" y "Reportes" para navegación entre secciones
+- **Acceso a notificaciones/configuración**: Icono de campana superior derecho
+
+### Columna Izquierda (Métricas)
+- **Ventas Hoy**: Tarjeta con $43.570 y flecha roja indicando disminución (-8.4%) vs período anterior
+- **Pedidos Hoy**: Tarjeta con 7 pedidos y flecha verde (+14.2%)
+- **Pedidos Entregados**: Tarjeta con 60 pedidos
+- **Retiros/Delivery**: Tarjeta con 2 retiros y 4 deliverys
+- **Ranking Categorías": Gráfico de torta mostrando distribución de ventas por categoría:
+  - Almuerzos: 25%
+  - Sandwiches: 15.6%
+  - Pizzas: 8.3%
+  - Desayunos: 8.3%
+  - Otros artículos: 42.8%
+
+### Columna Central (Pedidos)
+- **Título": "Pedidos Abiertos" con contador (1)
+- **Tarjeta de pedido #67": Detalle de pedido de "Juan Perez" con:
+  - Hora: 20:56 (en rojo)
+  - Items: 2 productos variados más extras
+  - Estado: "Listo" con indicador verde
+  - Tiempo transcurrido: 4 mins 27 segs
+  - Botón "OPEN" para expandir detalles
+
+### Columna Derecha (Controles)
+- **Picker de fecha**: Para seleccionar período de visualización de métricas
+- **Botones de acción": Botones grandes para operaciones comunes:
+  - "Pantallas" - Acceso a configuración de pantallas
+  - "Pedidos" - Gestión de pedidos
+  - "Aplicaciones" - Configuración de apps integradas
+  - "Productos" - Gestión de catálogo de productos
+  - "Exportar" - Para exportar datos
+  - "Clientes" - Gestión de clientes
+- **Selector de fuente de pedidos": Dropdown para filtrar pedidos por origen
+
+## Funcionalidades Clave
+1. **Monitoreo en tiempo real**: Métricas actualizadas de ventas y pedidos
+2. **Análisis visual**: Gráficos que muestran distribución de ventas por categoría
+3. **Gestión de pedidos**: Visualización de pedidos abiertos con tiempos de preparación
+4. **Control operativo**: Acceso rápido a las principales funciones administrativas
+5. **Exportación de datos**: Funcionalidad para exportar información para análisis externo
+6. **Multi-local**: Soporte para gestión de múltiples locales desde un mismo dashboard
+
+## Contexto de Uso
+Esta pantalla es el centro de operaciones para:
+- Gerentes de local que necesitan monitorear el desempeño en tiempo real
+- Administradores que gestionan múltiples puntos de venta
+- Personal operativo que coordina la preparación y entrega de pedidos
+- Analistas que requieren datos de ventas por categoría
+
+## Características Técnicas
+- Diseño responsivo para uso en escritorio
+- Actualización en tiempo real de métricas mediante WebSockets
+- Integración con múltiples fuentes de datos (POS, delivery, retiros)
+- Sistema de alertas visuales para pedidos con demoras
+- Base de datos centralizada para métricas consolidadas
+- API para exportación de datos a herramientas de BI
+- Autenticación y permisos por rol de usuario

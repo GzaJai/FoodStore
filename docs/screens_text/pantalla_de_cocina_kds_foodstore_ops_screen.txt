@@ -1,0 +1,85 @@
+# Análisis de pantalla_de_cocina_kds_foodstore_ops_screen.png
+
+## Descripción General
+Sistema KDS (Kitchen Display System) de FoodStore OPS diseñado para optimizar la gestión de pedidos en cocina. Pantalla táctil especializada que muestra pedidos pendientes con detalles completos de preparación, organizada por prioridad y estado.
+
+## Elementos de la Interfaz
+
+### Barra Superior
+- **Logo FoodStore**: En la esquina superior izquierda
+- **Identificador de sucursal": "CIUDAD UNIVERSITARIA" - indica la ubicación actual
+- **Selector de área**: Dropdown para cambiar entre diferentes estaciones de cocina
+- **Temporizador principal**: Muestra hora "11:26:34" en gran tamaño
+- **Botón de configuración**: Icono de engranaje en esquina superior derecha
+
+### Sección Principal (Pedidos)
+Dividida en dos columnas principales:
+
+#### Columna Izquierda (Pedidos con Prioridad)
+- **Título**: "EN COCINA (3) con prioridad 0" - muestra cantidad de pedidos
+- **Tarjeta de pedido #70**:
+  - Header con número de pedido (#70) y avatar de cliente
+  - Cuerpo con detalles del pedido: "Café Latte Grande + Crema De Leche"
+  - Footer con botón "TERMINAR" en rojo
+  - Tiempo transcurrido: "Hace 1 hora"
+
+#### Columna Derecha (Pedidos Regulares)
+- **Listado de pedidos múltiples**: Organizados por número (#)
+- **Pedido #71 (En cocina)**: Items:
+  - Café Moka Mediano
+  - Tostado con Jamón y Queso
+  - Barra de Granola Casera
+  - Té Verde
+- **Botón "TERMINAR"** asociado al pedido
+- **Indicadores de tiempo**: Para cada pedido
+
+### Detalle de Tarjetas
+Cada tarjeta de pedido contiene:
+- **Número de pedido** destacado (ej: #70)
+- **Avatares de clientes** para identificación visual
+- **Lista de items** con nombres descriptivos
+- **Botón TERMINAR** prominente para marcar como listo
+- **Tiempo transcurrido** desde que fue enviado a cocina
+- **Prioridad** indicada visualmente (color rojo)
+
+### Tipos de Pedidos Mostrados
+1. **Pedidos prioritarios**: En columna izquierda con fondo rojo y etiqueta "con prioridad"
+2. **Pedidos en cocina**: En la columna derecha con fondo verde
+3. **Pedidos a la vista**: Con detalles específicos para preparación
+
+## Funcionalidades Principales
+1. **Gestión visual**: Simplificación de la complejidad de pedidos con tarjetas intuitivas
+2. **Priorización**: Sistema de colores para identificar pedidos urgentes
+3. **Seguimiento en tiempo real**: Temporizadores para cada pedido
+4. **Organización por áreas**: Posibilidad de filtrar por estaciones (parrilla, bebidas, etc.)
+5. **Historial**: Registro de pedidos enviados a cocina
+6. **Notificaciones**: Alertas para pedidos con demoras
+7. **Integración**: Conexión directa con el sistema POS y pedidos digitales
+
+## Contexto de Uso
+Esta pantalla está diseñada para:
+- Cocineros en línea de preparación
+- Jefes de cocina que supervisan el flujo de trabajo
+- Estaciones especializadas (parrilla, repostería, bebidas)
+- Ambientes de cocina profesional con múltiples pedidos simultáneos
+
+## Características Técnicas
+- **Interfaz táctil**: Diseñada para uso en tablets o pantallas táctiles industriales
+- **Actualización en tiempo real**: Mediante WebSockets o polling continuo
+- **Base de datos**: Persistencia de estado de pedidos
+- **Sistema de alertas**: Para pedidos con tiempos de espera excesivos
+- **Resistencia**: Diseñada para entornos hostiles (calor, humedad, salpicaduras)
+- **Integración multi-sistema**: Compatible con POS tradicionales y pedidos online
+- **Diseño responsivo**: Adaptable a diferentes tamaños de pantallas
+- **Modo noche/día**: Contraste alto para visibilidad en diferentes condiciones
+- **Impresión de tickets**: Opcional para pedidos complejos
+- **Almacenamiento local**: Para funcionamiento durante cortes de conexión
+- **Log de operaciones**: Registro de acciones para control de calidad
+
+## Beneficios Operativos
+1. **Reducción de errores**: Visualización clara de pedidos sin papeles
+2. **Eficiencia**: Organización visual por prioridades
+3. **Trazabilidad**: Registro de tiempos de preparación
+4. **Flexibilidad**: Adaptable a diferentes tipos de cocina
+5. **Integración**: Con el ecosistema FoodStore para gestión unificada
+6. **Feedback en tiempo real**: Comunicación directa con el salón/caja
