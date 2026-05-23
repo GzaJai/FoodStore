@@ -1,6 +1,9 @@
 import { create } from 'zustand'
+import { loginApi, getMeApi } from '../api/auth'
+import { setToken, clearToken, getToken } from '../api/client'
+import { mapUser } from '../api/mappers'
 
-interface User {
+export interface User {
   id: string
   name: string
   email: string
@@ -9,16 +12,18 @@ interface User {
   avatar?: string
 }
 
-interface AuthState {
+export interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  _isHydrated: boolean
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   updateUser: (data: Partial<User>) => void
+  checkAuth: () => Promise<boolean>
 }
 
-const roleLabels: Record<string, string> = {
+export const roleLabels: Record<string, string> = {
   admin: 'Administrador',
   cook: 'Cocina',
   cashier: 'Caja',
@@ -29,32 +34,55 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  _isHydrated: false,
+
   login: async (email: string, password: string) => {
     set({ isLoading: true })
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    if (email && password) {
-      const isKitchen = email.includes('cocina') || email.includes('kitchen')
+    try {
+      const res = await loginApi(email, password)
+      setToken(res.token)
       set({
-        user: {
-          id: '1',
-          name: email.includes('admin') ? 'Admin User' : email.includes('cocina') ? 'Carlos Cocina' : 'Usuario FoodStore',
-          email,
-          phone: '+54 9 11 1234-5678',
-          role: isKitchen ? 'cook' : 'admin',
-        },
+        user: mapUser(res.user),
         isAuthenticated: true,
         isLoading: false,
+        _isHydrated: true,
       })
       return true
+    } catch {
+      set({ isLoading: false, _isHydrated: true })
+      return false
     }
-    set({ isLoading: false })
-    return false
   },
-  logout: () => set({ user: null, isAuthenticated: false }),
-  updateUser: (data) => set((state) => ({
-    user: state.user ? { ...state.user, ...data } : null,
-  })),
-}))
 
-export { roleLabels }
+  logout: () => {
+    clearToken()
+    set({ user: null, isAuthenticated: false, _isHydrated: true })
+  },
+
+  updateUser: (data) =>
+    set((state) => ({
+      user: state.user ? { ...state.user, ...data } : null,
+    })),
+
+  checkAuth: async () => {
+    const token = getToken()
+    if (!token) {
+      set({ user: null, isAuthenticated: false, _isHydrated: true })
+      return false
+    }
+
+    try {
+      const apiUser = await getMeApi()
+      set({
+        user: mapUser(apiUser),
+        isAuthenticated: true,
+        _isHydrated: true,
+      })
+      return true
+    } catch {
+      clearToken()
+      set({ user: null, isAuthenticated: false, _isHydrated: true })
+      return false
+    }
+  },
+}))

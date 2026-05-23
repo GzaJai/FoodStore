@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRES_IN: int = 604800  # 7 days
 
-    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:5174"]
 
     UPLOAD_DIR: str = "app/uploads"
 

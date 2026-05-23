@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from app.config.database import get_db
-from app.models.models import Product, ProductCategory, UserRole
+from app.models.models import Product, ProductCategoryDef, UserRole
 from app.schemas.schemas import ProductCreate, ProductUpdate, ProductResponse
 from app.core.auth import get_current_user, require_role
 
@@ -16,19 +17,23 @@ router = APIRouter(prefix="/api/products", tags=["3. Productos"])
     description="Lista todos los productos activos. Se puede filtrar por categoría, búsqueda textual y estado.",
 )
 async def list_products(
-    category: ProductCategory | None = Query(None, description="Filtrar por categoría"),
+    category_id: str | None = Query(None, description="Filtrar por ID de categoría"),
     search: str | None = Query(None, description="Buscar por nombre"),
     active: bool = Query(True, description="Solo productos activos"),
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    query = select(Product).where(Product.is_active == active)
-    if category:
-        query = query.where(Product.category == category)
+    query = (
+        select(Product)
+        .options(joinedload(Product.category_ref))
+        .where(Product.is_active == active)
+    )
+    if category_id:
+        query = query.where(Product.category_id == category_id)
     if search:
         query = query.where(Product.name.ilike(f"%{search}%"))
     result = await db.execute(query.order_by(Product.name))
-    return [ProductResponse.model_validate(p) for p in result.scalars().all()]
+    return [ProductResponse.model_validate(p) for p in result.unique().scalars().all()]
 
 
 @router.post(
@@ -43,17 +48,35 @@ async def create_product(
     db: AsyncSession = Depends(get_db),
     user=Depends(require_role(UserRole.ADMIN, UserRole.MANAGER)),
 ):
+    # Validar que la categoría exista
+    cat_result = await db.execute(
+        select(ProductCategoryDef).where(ProductCategoryDef.id == body.category_id)
+    )
+    if not cat_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Categoría no encontrada",
+        )
+
     product = Product(
         id=str(__import__("uuid").uuid4()),
         name=body.name,
         description=body.description,
         price=body.price,
-        category=body.category,
+        category_id=body.category_id,
         prep_time_min=body.prep_time_min,
     )
     db.add(product)
     await db.commit()
     await db.refresh(product)
+
+    # Recargar con relación para la response
+    result = await db.execute(
+        select(Product)
+        .options(joinedload(Product.category_ref))
+        .where(Product.id == product.id)
+    )
+    product = result.unique().scalar_one()
     return ProductResponse.model_validate(product)
 
 
@@ -69,8 +92,12 @@ async def update_product(
     db: AsyncSession = Depends(get_db),
     user=Depends(require_role(UserRole.ADMIN, UserRole.MANAGER)),
 ):
-    result = await db.execute(select(Product).where(Product.id == product_id))
-    product = result.scalar_one_or_none()
+    result = await db.execute(
+        select(Product)
+        .options(joinedload(Product.category_ref))
+        .where(Product.id == product_id)
+    )
+    product = result.unique().scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
 
@@ -79,6 +106,14 @@ async def update_product(
 
     await db.commit()
     await db.refresh(product)
+
+    # Recargar con relación
+    result = await db.execute(
+        select(Product)
+        .options(joinedload(Product.category_ref))
+        .where(Product.id == product.id)
+    )
+    product = result.unique().scalar_one()
     return ProductResponse.model_validate(product)
 
 

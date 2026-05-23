@@ -1,7 +1,7 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
-from app.models.models import UserRole, OrderStatus, OrderChannel, ProductCategory
+from app.models.models import UserRole, OrderStatus, OrderChannel
 
 
 # ==========================================
@@ -53,7 +53,7 @@ class ProductCreate(BaseModel):
     name: str
     description: Optional[str] = None
     price: float
-    category: ProductCategory
+    category_id: str
     prep_time_min: Optional[int] = None
 
 
@@ -61,7 +61,7 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
-    category: Optional[ProductCategory] = None
+    category_id: Optional[str] = None
     is_active: Optional[bool] = None
     prep_time_min: Optional[int] = None
 
@@ -71,10 +71,39 @@ class ProductResponse(BaseModel):
     name: str
     description: Optional[str] = None
     price: float
-    category: ProductCategory
+    category_id: str
+    category: str
+    category_name: str
     is_active: bool
     image: Optional[str] = None
     prep_time_min: Optional[int] = None
+
+    model_config = {"from_attributes": True}
+
+
+# ==========================================
+# PRODUCT CATEGORIES
+# ==========================================
+
+class ProductCategoryCreate(BaseModel):
+    name: str
+    key: str
+    color: Optional[str] = None
+
+
+class ProductCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class ProductCategoryResponse(BaseModel):
+    id: str
+    name: str
+    key: str
+    color: Optional[str] = None
+    is_active: bool
+    product_count: int = 0
 
     model_config = {"from_attributes": True}
 

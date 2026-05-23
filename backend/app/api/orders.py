@@ -1,20 +1,24 @@
 import uuid
 import json
+import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func
 from app.config.database import get_db
-from app.models.models import Order, OrderItem, OrderStatus, OrderChannel, Product, User
+from app.models.models import Order, OrderItem, OrderStatus, OrderChannel, Product, User, UserRole
 from app.schemas.schemas import OrderCreate, OrderStatusUpdate, OrderResponse
 from app.core.auth import get_current_user
+from app.ws.manager import manager
+
+logger = logging.getLogger("foodstore.api.orders")
 
 router = APIRouter(prefix="/api/orders", tags=["4. Pedidos"])
 
 VALID_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     OrderStatus.PENDING: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
     OrderStatus.PREPARING: [OrderStatus.READY, OrderStatus.CANCELLED],
-    OrderStatus.READY: [OrderStatus.SENT, OrderStatus.CANCELLED],
+    OrderStatus.READY: [OrderStatus.SENT, OrderStatus.BILLED, OrderStatus.CANCELLED],
     OrderStatus.SENT: [OrderStatus.BILLED],
     OrderStatus.BILLED: [],
     OrderStatus.CANCELLED: [],
@@ -53,7 +57,7 @@ async def list_orders(
             (Order.order_number.ilike(f"%{search}%"))
         )
     if date:
-        query = query.where(cast(Order.created_at, Date) == date)
+        query = query.where(func.date(Order.created_at) == date)
 
     query = query.order_by(Order.created_at.desc())
     offset = (page - 1) * per_page
@@ -64,8 +68,7 @@ async def list_orders(
 
     responses = []
     for order in orders:
-        items_result = await db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
-        order.items = items_result.scalars().all()
+        await db.refresh(order, ["items"])
         responses.append(OrderResponse.model_validate(order))
 
     return responses
@@ -82,13 +85,16 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    result = await db.execute(select(Order).where(Order.id == order_id))
-    order = result.scalar_one_or_none()
+    from sqlalchemy.orm import joinedload
+    result = await db.execute(
+        select(Order)
+        .options(joinedload(Order.items))
+        .where(Order.id == order_id)
+    )
+    order = result.unique().scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
 
-    items_result = await db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
-    order.items = items_result.scalars().all()
     return OrderResponse.model_validate(order)
 
 
@@ -150,10 +156,18 @@ async def create_order(
 
     db.add(order)
     await db.commit()
-    await db.refresh(order)
 
-    items_result = await db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
-    order.items = items_result.scalars().all()
+    await db.refresh(order, ["items"])
+
+    # Broadcast a paneles conectados
+    await manager.broadcast({
+        "type": "order_created",
+        "payload": {
+            "order_id": order.id,
+            "order_number": order.order_number,
+        },
+    })
+    logger.info("Orden #%s creada por %s — broadcast enviado", order.order_number, user.name)
 
     return OrderResponse.model_validate(order)
 
@@ -188,12 +202,17 @@ async def update_order_status(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
 
-    allowed = VALID_TRANSITIONS.get(order.status, [])
-    if body.status not in allowed:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Transición no válida: {order.status.value} → {body.status.value}",
-        )
+    old_status = order.status
+
+    # Admin puede ir a CUALQUIER estado (por si hubo un error en el proceso)
+    # El resto de roles debe seguir la máquina de estados estricta
+    if user.role != UserRole.ADMIN:
+        allowed = VALID_TRANSITIONS.get(old_status, [])
+        if body.status not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Transición no válida: {old_status.value} → {body.status.value}",
+            )
 
     now = datetime.now(timezone.utc)
     order.status = body.status
@@ -208,10 +227,22 @@ async def update_order_status(
         order.cancelled_at = now
 
     await db.commit()
-    await db.refresh(order)
+    await db.refresh(order, ["items"])
 
-    items_result = await db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
-    order.items = items_result.scalars().all()
+    # Broadcast actualización de estado
+    await manager.broadcast({
+        "type": "order_updated",
+        "payload": {
+            "order_id": order.id,
+            "order_number": order.order_number,
+            "status": order.status.value,
+        },
+    })
+    logger.info(
+        "Orden #%s (%s): %s → %s — broadcast enviado",
+        order.order_number, user.name,
+        old_status.value, body.status.value,
+    )
 
     return OrderResponse.model_validate(order)
 

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FoodStore - Catálogo</title>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#1a1c1e",
+                    "on-tertiary": "#ffffff",
+                    "outline-variant": "#e4beb1",
+                    "on-primary-fixed-variant": "#802a00",
+                    "on-tertiary-fixed-variant": "#92001c",
+                    "surface": "#f9f9fc",
+                    "surface-container-highest": "#e2e2e5",
+                    "secondary-fixed": "#ffdea8",
+                    "surface-bright": "#f9f9fc",
+                    "primary-fixed-dim": "#ffb59a",
+                    "on-tertiary-container": "#5f000f",
+                    "tertiary-fixed-dim": "#ffb3b1",
+                    "secondary-container": "#feb700",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#a73a00",
+                    "on-primary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#ffba20",
+                    "outline": "#8f7065",
+                    "inverse-surface": "#2f3133",
+                    "tertiary-fixed": "#ffdad8",
+                    "surface-container-high": "#e8e8ea",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface-dim": "#dadadc",
+                    "on-secondary-fixed": "#271900",
+                    "on-primary-container": "#521800",
+                    "tertiary": "#bb152c",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#eeeef0",
+                    "surface-variant": "#e2e2e5",
+                    "on-secondary-container": "#6b4b00",
+                    "inverse-primary": "#ffb59a",
+                    "on-primary-fixed": "#370e00",
+                    "primary-container": "#ff5c00",
+                    "primary-fixed": "#ffdbce",
+                    "surface-container-low": "#f3f3f6",
+                    "on-error-container": "#93000a",
+                    "on-background": "#1a1c1e",
+                    "tertiary-container": "#ff575e",
+                    "on-secondary-fixed-variant": "#5e4200",
+                    "secondary": "#7c5800",
+                    "primary": "#a73a00",
+                    "inverse-on-surface": "#f0f0f3",
+                    "on-surface-variant": "#5b4137",
+                    "on-tertiary-fixed": "#410007",
+                    "background": "#f9f9fc"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "12px",
+                    "margin-mobile": "16px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "gutter-mobile": "12px",
+                    "base": "4px",
+                    "xs": "8px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "label-md": ["Plus Jakarta Sans"],
+                    "title-md": ["Plus Jakarta Sans"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-lg": ["Plus Jakarta Sans"],
+                    "body-sm": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "display-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .delicious-shadow {
+            box-shadow: 0 4px 12px rgba(167, 58, 0, 0.08);
+        }
+        .active-scale:active { transform: scale(0.95); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface pb-24">
+<!-- TopAppBar -->
+<header class="flex flex-col justify-center px-margin-mobile h-32 w-full docked full-width top-0 bg-gradient-to-r from-primary to-primary-container shadow-md sticky z-40">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-display-lg text-display-lg font-extrabold text-on-primary">FoodStore</span>
+<span class="font-label-md text-label-md text-on-primary/80">Hacé tu pedido online</span>
+</div>
+<button class="w-12 h-12 flex items-center justify-center rounded-full bg-on-primary/10 text-on-primary hover:opacity-90 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+</button>
+</div>
+</header>
+<!-- Categories Carousel -->
+<section class="mt-lg px-margin-mobile">
+<div class="flex overflow-x-auto gap-sm hide-scrollbar pb-2">
+<!-- Active Category -->
+<button class="flex-none flex items-center gap-xs px-md py-sm bg-primary text-on-primary rounded-full font-label-md text-label-md transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="restaurant_menu">restaurant_menu</span>
+                Todo
+            </button>
+<!-- Inactive Categories -->
+<button class="flex-none flex items-center gap-xs px-md py-sm bg-surface-container text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="lunch_dining">lunch_dining</span>
+                Hamburguesas
+            </button>
+<button class="flex-none flex items-center gap-xs px-md py-sm bg-surface-container text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="local_pizza">local_pizza</span>
+                Pizzas
+            </button>
+<button class="flex-none flex items-center gap-xs px-md py-sm bg-surface-container text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="local_drink">local_drink</span>
+                Bebidas
+            </button>
+<button class="flex-none flex items-center gap-xs px-md py-sm bg-surface-container text-on-surface-variant rounded-full font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="icecream">icecream</span>
+                Postres
+            </button>
+</div>
+</section>
+<!-- Featured Header -->
+<main class="mt-lg px-margin-mobile">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile mb-md">Populares de hoy</h2>
+<!-- Product Grid (2 Columns) -->
+<div class="grid grid-cols-2 gap-gutter-mobile">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden delicious-shadow group">
+<div class="relative h-40 bg-[#FFF5EE]">
+<img alt="Hamburguesa Clásica" class="w-full h-full object-cover" data-alt="A juicy, premium gourmet hamburger with melted cheddar cheese, crisp green lettuce, and ripe red tomato slices on a toasted sesame seed bun. The burger is photographed in a high-key, bright studio setting with professional lighting that emphasizes the vibrant oranges and reds of the food. The style is modern, appetizing, and high-velocity, matching a premium food delivery app aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC1GV1Ni_z-jWox_J4evR7qJtbbV4cUA6hrNQapC1IFVohX3ItU8t0zyF9V_pz6jgS30zxsh5_nCpQ3-IrdLrLVSX6SaJlL9uRdsbzHglseRJT2jxDWqDDLk1xjdvQFlB1pmhS0Kvdd7oA4dwKmTpcH5QhPcWRaAWs_yE7tj0WUDIhi41XP9KaOopNdugy3Uttgel8JOxmMud-JtirhY_8C5k77ZIzLkvVRbGPWsm_SjAgaObnIGCAIb1t8gppNs_IOJvoffN3f6s"/>
+<div class="absolute top-2 right-2 bg-secondary-container text-on-secondary-container text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        HOT
+                    </div>
+</div>
+<div class="p-sm flex flex-col gap-1">
+<h3 class="font-title-md text-title-md truncate">Burger Clásica</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Carne 180g, queso, lechuga.</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="text-primary font-bold font-title-md text-title-md">$5.500</span>
+<button class="w-10 h-10 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center active:scale-90 transition-transform delicious-shadow">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden delicious-shadow group">
+<div class="relative h-40 bg-[#F5F5F5]">
+<img alt="Pizza Muzza" class="w-full h-full object-cover" data-alt="A delicious whole mozzarella pizza with bubbling golden cheese and fresh basil leaves on top, captured in a warm, vibrant lighting environment. The background is a clean, minimalist off-white surface that makes the rich orange and red tones of the pizza pop. The image has a professional, high-end food photography look suitable for a modern delivery platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4rE75D6r0oLMDcrsorhrYKE5rv4Va-u4JzIK1ZqiKiqOVEtm75MWAdzvuvkBCxq8-iYSB0_WpkMODoq8wQldqMmtbAFLMwqoQBcQQNQBEr4qIm4d-ZZz7_NTstkpRM7SADM3KD7Nw_sbPN1MYMycgCsuDaCvRMDOUgp-6mO3ZcL3o6bBskl3YrMjHZ7MkCh5XiDWywVzUMWpgh7tnb8fKHaUZz07Qgk3iltL1TfxvFFWi6TXJt_oq8oVR9V_zScTInf0jhy3ewSg"/>
+</div>
+<div class="p-sm flex flex-col gap-1">
+<h3 class="font-title-md text-title-md truncate">Pizza Muzza</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Doble queso y orégano.</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="text-primary font-bold font-title-md text-title-md">$7.000</span>
+<button class="w-10 h-10 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center active:scale-90 transition-transform delicious-shadow">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden delicious-shadow group">
+<div class="relative h-40 bg-[#E8F5E9]">
+<img alt="Ensalada César" class="w-full h-full object-cover" data-alt="A fresh, crisp Caesar salad in a modern bowl featuring grilled chicken strips, crunchy golden croutons, and shaved parmesan cheese. The lighting is bright and airy, reflecting a healthy and fresh vibe. The color palette uses vibrant greens and warm yellows against a soft-lit, minimalist background, perfect for a high-quality food store UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5b2i7C-NAF8TE2n6FAzKY8eGiqBz3gALy6hEKDqHPtUOCXok8NNNAkfGv93JYotFA5sQwh33cGacDGhqNlG3eIavIQ71anGP3TGz9EFQE5gX37NXO_S9F-53CHLTLJWk9IK8JzgHfByMCG2KQjkH5u9IfcSOZZGdrXiNBmw2QcUcVlSyh9zjkn28d7l7H0W5AjZ7MX6eIkOTNWyNZiDYrsMfMtR0X1m4-yDWRK_TEykadZwK6dmfwcBgmNK1QzN6kQHtuyMN3aA8"/>
+</div>
+<div class="p-sm flex flex-col gap-1">
+<h3 class="font-title-md text-title-md truncate">Ensalada César</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Pollo, croutons, parmesano.</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="text-primary font-bold font-title-md text-title-md">$5.000</span>
+<button class="w-10 h-10 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center active:scale-90 transition-transform delicious-shadow">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden delicious-shadow group">
+<div class="relative h-40 bg-[#FFF8E1]">
+<img alt="Empanadas Carne" class="w-full h-full object-cover" data-alt="A plate of traditional golden-brown baked meat empanadas, arranged artistically on a rustic yet clean surface. The image is bathed in warm, appetizing light that highlights the flaky texture of the pastry. The scene is modern and energetic, using high contrast and vibrant food colors to evoke a high-quality sensory experience for a delivery app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUbF4yiDv7ivAzp4RXDsL8uEbgamAHZ-fp8Giy-22ybEAxSdWk_4W-eWhXL6YvA1e-my4ujQ099SKLRPpfWW9q052VHUrZI-sj2QMGRSaQVn6DzsOU_g6opnh620qo477_jzycKYxGP5v4KoejH4sadR_gQsxGMKyG8AeKsl62gdOPnWEbV0u48gZCyyxyhp_JwitvVBqdQDcSscaB942fehjp_eh467ZUmrp16UhiYgeYqSrfCms8t4uCuN442rPCZvzxVS-QnLI"/>
+</div>
+<div class="p-sm flex flex-col gap-1">
+<h3 class="font-title-md text-title-md truncate">Empanadas x6</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Carne cortada a cuchillo.</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="text-primary font-bold font-title-md text-title-md">$4.500</span>
+<button class="w-10 h-10 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center active:scale-90 transition-transform delicious-shadow">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden delicious-shadow group">
+<div class="relative h-40 bg-[#E1F5FE]">
+<img alt="Café Latte" class="w-full h-full object-cover" data-alt="A tall glass of creamy café latte with distinct layers of milk and rich espresso, topped with a delicate foam heart. The setting is bright and modern, with a clean surface and soft morning light. The image captures the warmth and freshness of a high-end cafe experience, using a sophisticated color palette of browns and creams against an off-white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYcdTplCVIAhWvVA2Ps7aEakxI-sDKYzyNgdP9c7z8wCdv3X_RwOg9_q6UJEOkA-9ekgX97S5tv_64lJZ8zDg1GRvQcJCp7knlPX-A_idvPjt9y0dHRP7DoG107xW6LMvaaVO32-RnzEv24cMeY8bcOc7IBUmPN3XbeyemVWw2syjH9TwYIN4zwohhXZI9Zc__qlY2LfJK7HlXp__7z36wu8G1vdZK9rkyrccPRl8WLk8OqVCynqCzL-SMmNuF7aYcxwtzyBKiD3k"/>
+</div>
+<div class="p-sm flex flex-col gap-1">
+<h3 class="font-title-md text-title-md truncate">Café Latte</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Taza grande de 300ml.</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="text-primary font-bold font-title-md text-title-md">$3.000</span>
+<button class="w-10 h-10 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center active:scale-90 transition-transform delicious-shadow">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden delicious-shadow group">
+<div class="relative h-40 bg-[#FFFDE7]">
+<img alt="Tostado J&amp;Q" class="w-full h-full object-cover" data-alt="A perfectly toasted sandwich with melted ham and cheese, cut diagonally to show the stretchy cheese inside. The bread is golden and crispy, photographed in a bright, modern light-mode style. The overall mood is warm, fresh, and high-velocity, focusing on the quality and appetizing nature of a simple classic dish for an online food store." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiCvLj7PU3MgU2wn0NyWNL1GW2j-6o_YXs8kT9VrbLtTIWacdTN-iAP4f8MnrWrf8hsvsLg6UGG02OaP-QYclU5bMgYNeFaCznMYnRrYZI0KRSh7tT-FXa7F5ohNFS6gATpF8B8_my-mRXLfiJ-KpSMgAkUygU7N2vP6r64Kk8VSlZGVYCGj6Tmi17jdytRqCWRvZxuymffHc1z0Y3ftxnvvBMb39yIskLuVaW9fbwLzJwWZ1yQFEx_4coonzlRZz1x5E3lee06Sw"/>
+</div>
+<div class="p-sm flex flex-col gap-1">
+<h3 class="font-title-md text-title-md truncate">Tostado J&amp;Q</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Miga artesanal tostado.</p>
+<div class="flex items-center justify-between mt-sm">
+<span class="text-primary font-bold font-title-md text-title-md">$3.500</span>
+<button class="w-10 h-10 bg-primary-container text-on-primary-container rounded-lg flex items-center justify-center active:scale-90 transition-transform delicious-shadow">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-2 py-3 bg-surface z-50 rounded-t-xl shadow-[0_-4px_12px_rgba(167,58,0,0.08)] border-t border-outline-variant">
+<!-- Catálogo (Active) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="restaurant_menu" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+<span class="font-label-md text-label-md">Catálogo</span>
+</a>
+<!-- Buscar -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-label-md text-label-md">Buscar</span>
+</a>
+<!-- Mis Pedidos -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-md text-label-md">Mis Pedidos</span>
+</a>
+<!-- Perfil -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md">Perfil</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for adding to cart
+        document.querySelectorAll('button[data-icon="add"]').forEach(btn => {
+            btn.parentElement.addEventListener('click', (e) => {
+                const button = btn.parentElement;
+                button.classList.add('scale-75');
+                setTimeout(() => {
+                    button.classList.remove('scale-75');
+                    // Simple feedback could be added here
+                }, 150);
+            });
+        });
+
+        // Sticky header transparency effect on scroll
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 20) {
+                header.classList.add('shadow-lg');
+            } else {
+                header.classList.remove('shadow-lg');
+            }
+        });
+    </script>
+</body></html>

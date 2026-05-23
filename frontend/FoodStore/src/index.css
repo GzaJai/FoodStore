@@ -1,1 +1,53 @@
 ﻿@import "tailwindcss";
+
+@theme {
+  --color-primary: #a73a00;
+  --color-primary-container: #ff5c00;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #521800;
+  --color-secondary: #7c5800;
+  --color-secondary-container: #feb700;
+  --color-on-secondary-container: #6b4b00;
+  --color-tertiary: #bb152c;
+  --color-tertiary-container: #ff575e;
+  --color-surface: #f9f9fc;
+  --color-surface-dim: #dadadc;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f3f6;
+  --color-surface-container: #eeeef0;
+  --color-surface-container-high: #e8e8ea;
+  --color-surface-container-highest: #e2e2e5;
+  --color-on-surface: #1a1c1e;
+  --color-on-surface-variant: #5b4137;
+  --color-outline: #8f7065;
+  --color-outline-variant: #e4beb1;
+  --color-background: #f9f9fc;
+  --color-inverse-surface: #2f3133;
+  --color-inverse-on-surface: #f0f0f3;
+  --color-inverse-primary: #ffb59a;
+
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  --font-weight-display: 800;
+  --font-weight-headline: 700;
+  --font-weight-title: 600;
+  --font-weight-label: 600;
+
+  --font-size-display-lg: 40px;
+  --font-size-headline-lg: 32px;
+  --font-size-headline-lg-mobile: 28px;
+  --font-size-title-md: 20px;
+  --font-size-body-lg: 16px;
+  --font-size-body-sm: 14px;
+  --font-size-label-md: 12px;
+}
+
+@layer utilities {
+  .delicious-shadow {
+    box-shadow: 0 4px 12px rgba(167, 58, 0, 0.08);
+  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .active-scale:active { transform: scale(0.95); }
+}

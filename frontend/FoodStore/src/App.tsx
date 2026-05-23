@@ -1,43 +1,21 @@
-﻿import { useUIStore } from './stores/uiStore'
+﻿import { useEffect } from 'react'
+import { Outlet } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
-import Layout from './components/layout/Layout'
-import Login from './views/Login'
-import Dashboard from './views/Dashboard'
-import OrderManagement from './views/OrderManagement'
-import KDS from './views/KDS'
-import ClientLogoCatalog from './views/ClientLogoCatalog'
-import Profile from './views/Profile'
+import { useOrderStore } from './stores/orderStore'
 
 export default function App() {
-  const { currentView } = useUIStore()
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, checkAuth } = useAuthStore()
+  const { fetchOrders } = useOrderStore()
 
-  if (!isAuthenticated && currentView !== 'login') {
-    return <Login />
-  }
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'login':
-        return <Login />
-      case 'dashboard':
-        return <Dashboard />
-      case 'orders':
-        return <OrderManagement />
-      case 'kds':
-        return <KDS />
-      case 'client-logos':
-        return <ClientLogoCatalog />
-      case 'profile':
-        return <Profile />
-      default:
-        return <Dashboard />
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchOrders()
     }
-  }
+  }, [isAuthenticated, fetchOrders])
 
-  return (
-    <Layout>
-      {renderView()}
-    </Layout>
-  )
+  return <Outlet />
 }

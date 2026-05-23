@@ -1,13 +1,17 @@
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func
+from sqlalchemy.orm import joinedload
 from app.config.database import get_db
-from app.models.models import Order, OrderItem, OrderStatus, OrderChannel, Product, ProductCategory
+from app.models.models import Order, OrderItem, OrderStatus, OrderChannel, Product, ProductCategoryDef
 from app.schemas.schemas import DashboardMetrics, CategoryBreakdown, PreviousDayMetrics, OrderResponse
 from app.core.auth import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["7. Dashboard"])
+
+# Helper: extraer fecha como string YYYY-MM-DD de forma portable (SQLite + PostgreSQL)
+_date_col = func.date(Order.created_at)
 
 
 @router.get(
@@ -33,77 +37,69 @@ async def get_metrics(
     prev_date = target_date - timedelta(days=1)
 
     total_orders_result = await db.execute(
-        select(func.count(Order.id)).where(cast(Order.created_at, Date) == target_date)
+        select(func.count(Order.id)).where(_date_col == target_date)
     )
     total_orders = total_orders_result.scalar() or 0
 
     total_sales_result = await db.execute(
         select(func.sum(Order.total)).where(
-            (Order.status == OrderStatus.BILLED) & (cast(Order.created_at, Date) == target_date)
+            (Order.status == OrderStatus.BILLED) & (_date_col == target_date)
         )
     )
     total_sales = float(total_sales_result.scalar() or 0)
 
     delivered_result = await db.execute(
         select(func.count(Order.id)).where(
-            (Order.status == OrderStatus.BILLED) & (cast(Order.created_at, Date) <= target_date)
+            (Order.status == OrderStatus.BILLED) & (_date_col <= target_date)
         )
     )
     delivered_orders = delivered_result.scalar() or 0
 
     takeaway_result = await db.execute(
         select(func.count(Order.id)).where(
-            (Order.channel == OrderChannel.TAKEAWAY) & (cast(Order.created_at, Date) == target_date)
+            (Order.channel == OrderChannel.TAKEAWAY) & (_date_col == target_date)
         )
     )
     takeaway_count = takeaway_result.scalar() or 0
 
     delivery_result = await db.execute(
         select(func.count(Order.id)).where(
-            (Order.channel == OrderChannel.DELIVERY) & (cast(Order.created_at, Date) == target_date)
+            (Order.channel == OrderChannel.DELIVERY) & (_date_col == target_date)
         )
     )
     delivery_count = delivery_result.scalar() or 0
 
     items_result = await db.execute(
-        select(Product.category, func.count(OrderItem.id))
-        .join(OrderItem, OrderItem.product_id == Product.id)
+        select(ProductCategoryDef.name, ProductCategoryDef.color, func.count(OrderItem.id))
+        .select_from(OrderItem)
+        .join(Product, Product.id == OrderItem.product_id)
+        .join(ProductCategoryDef, ProductCategoryDef.id == Product.category_id)
         .join(Order, Order.id == OrderItem.order_id)
-        .where(cast(Order.created_at, Date) == target_date)
-        .group_by(Product.category)
+        .where(_date_col == target_date)
+        .group_by(ProductCategoryDef.id, ProductCategoryDef.name, ProductCategoryDef.color)
     )
     category_counts = items_result.all()
 
-    total_items = sum(count for _, count in category_counts) or 1
-    category_colors = {
-        ProductCategory.ALMUERZOS: "#f97316",
-        ProductCategory.SANDWICHES: "#3b82f6",
-        ProductCategory.PIZZAS: "#8b5cf6",
-        ProductCategory.DESAYUNOS: "#10b981",
-        ProductCategory.BEBIDAS: "#06b6d4",
-        ProductCategory.POSTRES: "#ec4899",
-        ProductCategory.ENTRADAS: "#84cc16",
-        ProductCategory.OTROS: "#6b7280",
-    }
+    total_items = sum(count for _, _, count in category_counts) or 1
 
     category_breakdown = [
         CategoryBreakdown(
-            name=cat.value,
+            name=name,
             value=round((count / total_items) * 100, 1),
-            color=category_colors.get(cat, "#6b7280"),
+            color=color or "#6b7280",
         )
-        for cat, count in category_counts
+        for name, color, count in category_counts
     ]
 
     prev_sales_result = await db.execute(
         select(func.sum(Order.total)).where(
-            (Order.status == OrderStatus.BILLED) & (cast(Order.created_at, Date) == prev_date)
+            (Order.status == OrderStatus.BILLED) & (_date_col == prev_date)
         )
     )
     prev_sales = float(prev_sales_result.scalar() or 0)
 
     prev_orders_result = await db.execute(
-        select(func.count(Order.id)).where(cast(Order.created_at, Date) == prev_date)
+        select(func.count(Order.id)).where(_date_col == prev_date)
     )
     prev_orders = prev_orders_result.scalar() or 0
 

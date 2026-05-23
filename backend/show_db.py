@@ -20,7 +20,7 @@ async def main():
         print(f"\n  PRODUCTS ({len(products)})")
         print("-" * 60)
         for p in products:
-            print(f"  {p.name:<30} ${float(p.price):>8.2f}  {p.category.value}")
+            print(f"  {p.name:<30} ${float(p.price):>8.2f}  {p.category}")
 
         # Client Categories
         cats = (await db.execute(select(ClientCategory))).scalars().all()

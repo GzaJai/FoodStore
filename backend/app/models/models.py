@@ -1,11 +1,10 @@
 import enum
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum, ForeignKey, Text, Numeric
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from app.config.database import async_session
 from sqlalchemy.ext.declarative import declarative_base
-import json
 
 Base = declarative_base()
 
@@ -32,15 +31,19 @@ class OrderChannel(str, enum.Enum):
     TAKEAWAY = "TAKEAWAY"
 
 
-class ProductCategory(str, enum.Enum):
-    ALMUERZOS = "ALMUERZOS"
-    SANDWICHES = "SANDWICHES"
-    PIZZAS = "PIZZAS"
-    DESAYUNOS = "DESAYUNOS"
-    BEBIDAS = "BEBIDAS"
-    POSTRES = "POSTRES"
-    ENTRADAS = "ENTRADAS"
-    OTROS = "OTROS"
+class ProductCategoryDef(Base):
+    """Categorías dinámicas de producto (reemplaza el enum hardcodeado)"""
+    __tablename__ = "product_categories"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    key = Column(String, unique=True, nullable=False, index=True)
+    color = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    products = relationship("Product", back_populates="category_ref")
 
 
 class User(Base):
@@ -54,8 +57,8 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.CASHIER, nullable=False)
     avatar = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_login_at = Column(DateTime, nullable=True)
 
     orders_created = relationship("Order", back_populates="created_by")
@@ -78,8 +81,8 @@ class Order(Base):
     subtotal = Column(Numeric(10, 2), default=0)
     tax = Column(Numeric(10, 2), default=0)
     total = Column(Numeric(10, 2), nullable=False)
-    created_at = Column(DateTime, server_default=func.now(), index=True)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     prepared_at = Column(DateTime, nullable=True)
     sent_at = Column(DateTime, nullable=True)
     billed_at = Column(DateTime, nullable=True)
@@ -114,14 +117,23 @@ class Product(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     price = Column(Numeric(10, 2), nullable=False)
-    category = Column(Enum(ProductCategory), nullable=False, index=True)
+    category_id = Column(String, ForeignKey("product_categories.id"), nullable=False, index=True)
     is_active = Column(Boolean, default=True, index=True)
     image = Column(String, nullable=True)
     prep_time_min = Column(Integer, nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    category_ref = relationship("ProductCategoryDef", back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
+
+    @property
+    def category(self) -> str | None:
+        return self.category_ref.key if self.category_ref else None
+
+    @property
+    def category_name(self) -> str | None:
+        return self.category_ref.name if self.category_ref else None
 
 
 class ClientCategory(Base):
@@ -135,8 +147,8 @@ class ClientCategory(Base):
     color = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     clients = relationship("Client", back_populates="category")
 
@@ -151,8 +163,8 @@ class Client(Base):
     address = Column(String, nullable=True)
     is_affiliated = Column(Boolean, default=False)
     client_category_id = Column(String, ForeignKey("client_categories.id"), nullable=True, index=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     category = relationship("ClientCategory", back_populates="clients")
 
@@ -166,6 +178,6 @@ class AuditLog(Base):
     entity = Column(String, nullable=False, index=True)
     entity_id = Column(String, nullable=True)
     details = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     user = relationship("User", back_populates="audit_logs")
