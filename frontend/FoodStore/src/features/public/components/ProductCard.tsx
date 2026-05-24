@@ -1,4 +1,4 @@
-import { Star, Heart } from 'lucide-react'
+import { Star, Heart, AlertTriangle } from 'lucide-react'
 import type { ApiProductResponse } from '../../../types/api'
 import { PRODUCT_IMAGES, CATEGORY_EMOJI } from '../constants'
 
@@ -9,12 +9,26 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onSelect }: ProductCardProps) {
   const imgUrl = PRODUCT_IMAGES[product.name]
+  const hasAllergens = product.ingredients?.some((i) => i.is_allergen) ?? false
+  const allergenNames = product.ingredients
+    ?.filter((i) => i.is_allergen)
+    .map((i) => i.name)
+    .join(', ') ?? ''
 
   return (
     <div
       className="bg-white rounded-[28px] border border-gray-100 shadow-[0_8px_24px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden relative cursor-pointer"
       onClick={() => onSelect(product)}
     >
+      {hasAllergens && (
+        <div className="absolute top-3 right-3 z-10">
+          <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-md" title={allergenNames}>
+            <AlertTriangle size={10} />
+            Alérgenos
+          </div>
+        </div>
+      )}
+
       <div className="relative w-full aspect-square p-4 pb-0 flex items-center justify-center bg-white">
         {imgUrl ? (
           <img

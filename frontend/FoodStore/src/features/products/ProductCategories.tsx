@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Card, CardContent, Button, Input, Modal, ModalFooter, Badge, EmptyState,
+  Card, CardContent, Button, Input, Select, Modal, ModalFooter, Badge, EmptyState,
 } from '../shared/ui'
 import {
-  Plus, Package, Edit3, Trash2, Loader2, AlertTriangle,
+  Plus, Package, Edit3, Trash2, Loader2, AlertTriangle, ChevronRight,
 } from 'lucide-react'
 import {
   listProductCategoriesApi,
@@ -30,12 +30,14 @@ interface CategoryForm {
   name: string
   key: string
   color: string
+  parent_id: string
 }
 
 const emptyForm: CategoryForm = {
   name: '',
   key: '',
   color: '#6b7280',
+  parent_id: '',
 }
 
 export default function ProductCategories() {
@@ -80,6 +82,7 @@ export default function ProductCategories() {
       name: cat.name,
       key: cat.key,
       color: cat.color ?? '#6b7280',
+      parent_id: cat.parent_id ?? '',
     })
     setFormError('')
     setModalOpen(true)
@@ -97,6 +100,7 @@ export default function ProductCategories() {
         const updated = await updateProductCategoryApi(editing.id, {
           name: form.name.trim() || undefined,
           color: form.color || undefined,
+          parent_id: form.parent_id || null,
         })
         setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
       } else {
@@ -104,6 +108,7 @@ export default function ProductCategories() {
           name: form.name.trim(),
           key: form.key.trim().toUpperCase(),
           color: form.color || undefined,
+          parent_id: form.parent_id || null,
         })
         setCategories((prev) => [...prev, created])
       }
@@ -159,48 +164,59 @@ export default function ProductCategories() {
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((cat) => (
-            <Card key={cat.id}>
-              <CardContent>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm"
-                      style={{ backgroundColor: cat.color ?? '#6b7280' }}
-                    >
-                      {cat.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{cat.name}</h3>
-                      <p className="text-xs text-gray-500 font-mono">{cat.key}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(cat)} title="Editar">
-                      <Edit3 size={15} />
-                    </Button>
-                    {cat.is_active && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingId(cat.id)}
-                        title="Desactivar"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+          {categories.map((cat) => {
+            const parentName = cat.parent_id
+              ? categories.find((c) => c.id === cat.parent_id)?.name
+              : undefined
+            return (
+              <Card key={cat.id}>
+                <CardContent>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+                        style={{ backgroundColor: cat.color ?? '#6b7280' }}
                       >
-                        <Trash2 size={15} />
+                        {cat.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800">{cat.name}</h3>
+                        <p className="text-xs text-gray-500 font-mono">{cat.key}</p>
+                        {parentName && (
+                          <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                            <ChevronRight size={10} />
+                            {parentName}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(cat)} title="Editar">
+                        <Edit3 size={15} />
                       </Button>
-                    )}
+                      {cat.is_active && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeletingId(cat.id)}
+                          title="Desactivar"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <Badge variant={cat.is_active ? 'success' : 'neutral'} size="sm">
-                    {cat.is_active ? 'Activa' : 'Inactiva'}
-                  </Badge>
-                  <span className="text-xs text-gray-500">{cat.product_count} producto(s)</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="mt-3 flex items-center justify-between">
+                    <Badge variant={cat.is_active ? 'success' : 'neutral'} size="sm">
+                      {cat.is_active ? 'Activa' : 'Inactiva'}
+                    </Badge>
+                    <span className="text-xs text-gray-500">{cat.product_count} producto(s)</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
@@ -270,6 +286,25 @@ export default function ProductCategories() {
                 />
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Categoría padre <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <Select
+              value={form.parent_id}
+              onChange={(e) => setForm({ ...form, parent_id: e.target.value })}
+              options={[
+                { value: '', label: 'Sin padre (categoría raíz)' },
+                ...categories
+                  .filter((c) => c.is_active && c.id !== editing?.id)
+                  .map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
+            {editing && form.parent_id === editing.id && (
+              <p className="text-xs text-red-500 mt-1">Una categoría no puede ser padre de sí misma</p>
+            )}
           </div>
         </div>
       </Modal>

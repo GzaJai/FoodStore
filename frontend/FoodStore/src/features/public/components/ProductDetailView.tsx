@@ -1,4 +1,4 @@
-import { ChevronLeft, Minus, Plus } from 'lucide-react'
+import { ChevronLeft, Minus, Plus, AlertTriangle } from 'lucide-react'
 import type { ApiProductResponse } from '../../../types/api'
 import { formatPrice, PRODUCT_IMAGES, CATEGORY_EMOJI } from '../constants'
 
@@ -64,7 +64,6 @@ export function ProductDetailView({
         <p className="text-gray-600 text-[15px] leading-relaxed mb-6">
           {product.description || 'Delicioso plato preparado con los mejores ingredientes frescos. Perfecto para disfrutar en cualquier momento.'}
         </p>
-      </div>
 
       {/* Bottom Action */}
       <div className="px-6 flex items-center justify-between mb-8 mt-auto gap-4">
@@ -90,6 +89,38 @@ export function ProductDetailView({
           Agregar al carrito
         </button>
       </div>
+    
+      {/* ── Alérgenos ──────────────────────────────────────────────── */}
+        {product.ingredients && product.ingredients.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Ingredientes</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {product.ingredients.map((ing) => (
+                <span
+                key={ing.id}
+                  className={`text-xs px-2 py-1 rounded-full ${
+                    ing.is_allergen
+                    ? 'bg-red-50 text-red-600 border border-red-200'
+                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                  }`}
+                >
+                  {ing.name}
+                  {ing.is_allergen && <span className="ml-1">*</span>}
+                </span>
+              ))}
+            </div>
+            {product.ingredients.some((i) => i.is_allergen) && (
+              <div className="mt-3 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <p>
+                  Este producto contiene alérgenos marcados con <strong>*</strong>.
+                  Consultá con el restaurante si tenés alguna restricción alimentaria.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+    </div>
     </div>
   )
 }

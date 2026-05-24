@@ -4,15 +4,18 @@ import type {
   ApiProductCreate,
   ApiProductUpdate,
   ApiMessageResponse,
+  ProductPage,
 } from '../types/api'
 
 export function listProductsApi(params?: {
   category_id?: string
   search?: string
   active?: boolean
-}): Promise<ApiProductResponse[]> {
-  return apiRequest<ApiProductResponse[]>('/api/products', {
-    params: params as Record<string, string | boolean | undefined>,
+  page?: number
+  per_page?: number
+}): Promise<ProductPage> {
+  return apiRequest<ProductPage>('/api/products', {
+    params: params as Record<string, string | number | boolean | undefined>,
   })
 }
 

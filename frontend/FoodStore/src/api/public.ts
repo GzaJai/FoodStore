@@ -1,8 +1,13 @@
 import { apiRequest } from './client'
-import type { ApiProductResponse, ApiOrderResponse } from '../types/api'
+import type { ApiOrderResponse, ProductPage } from '../types/api'
 
-export async function listPublicProductsApi(): Promise<ApiProductResponse[]> {
-  return apiRequest<ApiProductResponse[]>('/api/public/products')
+export async function listPublicProductsApi(params?: {
+  page?: number
+  per_page?: number
+}): Promise<ProductPage> {
+  return apiRequest<ProductPage>('/api/public/products', {
+    params: params as Record<string, number | undefined>,
+  })
 }
 
 export interface PublicOrderPayload {

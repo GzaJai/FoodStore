@@ -30,3 +30,6 @@ export type { AvatarProps } from './Avatar'
 
 export { ConfirmModal } from './ConfirmModal'
 export type { ConfirmModalProps } from './ConfirmModal'
+
+export { Pagination } from './Pagination'
+export type { PaginationProps } from './Pagination'

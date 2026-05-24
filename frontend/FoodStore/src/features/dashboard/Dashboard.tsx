@@ -19,6 +19,7 @@ import {
   Download,
   Monitor,
   Store,
+  FlaskConical,
 } from 'lucide-react'
 
 const quickActions = [
@@ -26,6 +27,7 @@ const quickActions = [
   { label: 'Pedidos', icon: ShoppingBag, path: '/negocio/pedidos' },
   { label: 'Productos', icon: Package, path: '/negocio/productos' },
   { label: 'Categorías', icon: Package, path: '/negocio/categorias' },
+  { label: 'Ingredientes', icon: FlaskConical, path: '/negocio/ingredientes' },
   { label: 'Clientes', icon: Users, path: '/negocio/clientes' },
 ]
 

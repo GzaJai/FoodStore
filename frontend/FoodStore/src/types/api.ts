@@ -37,6 +37,23 @@ export interface ApiPasswordChange {
   new_password: string
 }
 
+// --- Ingredients ---
+export interface ApiIngredientResponse {
+  id: string
+  name: string
+  is_allergen: boolean
+}
+
+export interface ApiIngredientCreate {
+  name: string
+  is_allergen?: boolean
+}
+
+export interface ApiIngredientUpdate {
+  name?: string
+  is_allergen?: boolean
+}
+
 // --- Products ---
 export interface ApiProductResponse {
   id: string
@@ -49,6 +66,7 @@ export interface ApiProductResponse {
   is_active: boolean
   image: string | null
   prep_time_min: number | null
+  ingredients: ApiIngredientResponse[]
 }
 
 export interface ApiProductCreate {
@@ -57,6 +75,7 @@ export interface ApiProductCreate {
   price: number
   category_id: string
   prep_time_min?: number
+  ingredient_ids?: string[]
 }
 
 export interface ApiProductUpdate {
@@ -66,6 +85,7 @@ export interface ApiProductUpdate {
   category_id?: string
   is_active?: boolean
   prep_time_min?: number
+  ingredient_ids?: string[]
 }
 
 // --- Product Categories ---
@@ -74,6 +94,7 @@ export interface ApiProductCategoryResponse {
   name: string
   key: string
   color: string | null
+  parent_id: string | null
   is_active: boolean
   product_count: number
 }
@@ -82,11 +103,13 @@ export interface ApiProductCategoryCreate {
   name: string
   key: string
   color?: string
+  parent_id?: string | null
 }
 
 export interface ApiProductCategoryUpdate {
   name?: string
   color?: string
+  parent_id?: string | null
   is_active?: boolean
 }
 
@@ -194,4 +217,22 @@ export interface ApiDashboardMetrics {
 export interface ApiMessageResponse {
   success: boolean
   message: string
+}
+
+// --- Pagination ---
+export interface PaginationMeta {
+  page: number
+  per_page: number
+  total: number
+  total_pages: number
+}
+
+export interface ProductPage {
+  items: ApiProductResponse[]
+  meta: PaginationMeta
+}
+
+export interface IngredientPage {
+  items: ApiIngredientResponse[]
+  meta: PaginationMeta
 }

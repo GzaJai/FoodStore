@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
 from app.config.database import get_db
-from app.models.models import Product, ProductCategoryDef, UserRole
-from app.schemas.schemas import ProductCreate, ProductUpdate, ProductResponse
+from app.models.models import Product, ProductCategoryDef, Ingredient, UserRole
+from app.schemas.schemas import ProductCreate, ProductUpdate, ProductResponse, ProductPage, PaginationMeta
 from app.core.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/products", tags=["3. Productos"])
@@ -12,28 +12,52 @@ router = APIRouter(prefix="/api/products", tags=["3. Productos"])
 
 @router.get(
     "",
-    response_model=list[ProductResponse],
+    response_model=ProductPage,
     summary="Listar productos",
-    description="Lista todos los productos activos. Se puede filtrar por categoría, búsqueda textual y estado.",
+    description="Lista paginada de productos. Se puede filtrar por categoría, búsqueda textual y estado.",
 )
 async def list_products(
     category_id: str | None = Query(None, description="Filtrar por ID de categoría"),
     search: str | None = Query(None, description="Buscar por nombre"),
     active: bool = Query(True, description="Solo productos activos"),
+    page: int = Query(1, ge=1, description="Número de página"),
+    per_page: int = Query(20, ge=1, le=100, description="Productos por página"),
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
     query = (
         select(Product)
-        .options(joinedload(Product.category_ref))
+        .options(joinedload(Product.category_ref), joinedload(Product.ingredients))
         .where(Product.is_active == active)
     )
     if category_id:
         query = query.where(Product.category_id == category_id)
     if search:
         query = query.where(Product.name.ilike(f"%{search}%"))
-    result = await db.execute(query.order_by(Product.name))
-    return [ProductResponse.model_validate(p) for p in result.unique().scalars().all()]
+
+    # Count total
+    count_query = select(func.count()).select_from(Product).where(Product.is_active == active)
+    if category_id:
+        count_query = count_query.where(Product.category_id == category_id)
+    if search:
+        count_query = count_query.where(Product.name.ilike(f"%{search}%"))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Paginate
+    offset = (page - 1) * per_page
+    result = await db.execute(query.order_by(Product.name).offset(offset).limit(per_page))
+    items = [ProductResponse.model_validate(p) for p in result.unique().scalars().all()]
+
+    return ProductPage(
+        items=items,
+        meta=PaginationMeta(
+            page=page,
+            per_page=per_page,
+            total=total,
+            total_pages=max(1, (total + per_page - 1) // per_page),
+        ),
+    )
 
 
 @router.post(
@@ -67,13 +91,21 @@ async def create_product(
         prep_time_min=body.prep_time_min,
     )
     db.add(product)
+
+    # Asociar ingredientes
+    if body.ingredient_ids:
+        ingredients = await db.execute(
+            select(Ingredient).where(Ingredient.id.in_(body.ingredient_ids))
+        )
+        product.ingredients = ingredients.scalars().all()
+
     await db.commit()
     await db.refresh(product)
 
-    # Recargar con relación para la response
+    # Recargar con relaciones para la response
     result = await db.execute(
         select(Product)
-        .options(joinedload(Product.category_ref))
+        .options(joinedload(Product.category_ref), joinedload(Product.ingredients))
         .where(Product.id == product.id)
     )
     product = result.unique().scalar_one()
@@ -101,16 +133,26 @@ async def update_product(
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    update_data = body.model_dump(exclude_unset=True)
+    ingredient_ids = update_data.pop("ingredient_ids", None)
+
+    for field, value in update_data.items():
         setattr(product, field, value)
+
+    # Actualizar ingredientes si se enviaron
+    if ingredient_ids is not None:
+        ingredients = await db.execute(
+            select(Ingredient).where(Ingredient.id.in_(ingredient_ids))
+        )
+        product.ingredients = ingredients.scalars().all()
 
     await db.commit()
     await db.refresh(product)
 
-    # Recargar con relación
+    # Recargar con relaciones
     result = await db.execute(
         select(Product)
-        .options(joinedload(Product.category_ref))
+        .options(joinedload(Product.category_ref), joinedload(Product.ingredients))
         .where(Product.id == product.id)
     )
     product = result.unique().scalar_one()

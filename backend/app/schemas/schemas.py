@@ -55,6 +55,7 @@ class ProductCreate(BaseModel):
     price: float
     category_id: str
     prep_time_min: Optional[int] = None
+    ingredient_ids: list[str] = []
 
 
 class ProductUpdate(BaseModel):
@@ -64,6 +65,7 @@ class ProductUpdate(BaseModel):
     category_id: Optional[str] = None
     is_active: Optional[bool] = None
     prep_time_min: Optional[int] = None
+    ingredient_ids: Optional[list[str]] = None
 
 
 class ProductResponse(BaseModel):
@@ -77,8 +79,31 @@ class ProductResponse(BaseModel):
     is_active: bool
     image: Optional[str] = None
     prep_time_min: Optional[int] = None
+    ingredients: list["IngredientResponse"] = []
 
     model_config = {"from_attributes": True}
+
+
+# ==========================================
+# INGREDIENTS
+# ==========================================
+
+class IngredientResponse(BaseModel):
+    id: str
+    name: str
+    is_allergen: bool
+
+    model_config = {"from_attributes": True}
+
+
+class IngredientCreate(BaseModel):
+    name: str
+    is_allergen: bool = False
+
+
+class IngredientUpdate(BaseModel):
+    name: Optional[str] = None
+    is_allergen: Optional[bool] = None
 
 
 # ==========================================
@@ -89,11 +114,13 @@ class ProductCategoryCreate(BaseModel):
     name: str
     key: str
     color: Optional[str] = None
+    parent_id: Optional[str] = None
 
 
 class ProductCategoryUpdate(BaseModel):
     name: Optional[str] = None
     color: Optional[str] = None
+    parent_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -101,7 +128,8 @@ class ProductCategoryResponse(BaseModel):
     id: str
     name: str
     key: str
-    color: Optional[str] = None
+    color: Optional[str]
+    parent_id: Optional[str] = None
     is_active: bool
     product_count: int = 0
 
@@ -287,3 +315,24 @@ class MessageResponse(BaseModel):
 class ErrorResponse(BaseModel):
     success: bool = False
     error: dict
+
+
+# ==========================================
+# PAGINATION
+# ==========================================
+
+class PaginationMeta(BaseModel):
+    page: int
+    per_page: int
+    total: int
+    total_pages: int
+
+
+class ProductPage(BaseModel):
+    items: list["ProductResponse"]
+    meta: PaginationMeta
+
+
+class IngredientPage(BaseModel):
+    items: list["IngredientResponse"]
+    meta: PaginationMeta

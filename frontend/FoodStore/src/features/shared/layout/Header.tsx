@@ -11,6 +11,7 @@ import {
   Users,
   LogOut,
   UserCircle,
+  FlaskConical,
 } from 'lucide-react'
 
 export default function Header() {
@@ -29,6 +30,7 @@ export default function Header() {
       ? [
           { path: '/negocio/productos', label: 'Productos', icon: Package },
           { path: '/negocio/categorias', label: 'Categorías', icon: Tag },
+          { path: '/negocio/ingredientes', label: 'Ingredientes', icon: FlaskConical },
         ]
       : []),
     { path: '/negocio/clientes', label: 'Clientes', icon: Users },

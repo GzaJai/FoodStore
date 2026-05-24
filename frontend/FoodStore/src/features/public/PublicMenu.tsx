@@ -37,8 +37,8 @@ export default function PublicMenu() {
   useEffect(() => {
     setIsLoading(true)
     setError(null)
-    listPublicProductsApi()
-      .then(setProducts)
+    listPublicProductsApi({ per_page: 100 })
+      .then((res) => setProducts(res.items))
       .catch(() => setError('No pudimos cargar el menú. Intentalo de nuevo más tarde.'))
       .finally(() => setIsLoading(false))
   }, [])

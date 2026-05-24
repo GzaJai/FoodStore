@@ -11,6 +11,7 @@ import ClientLogoCatalog from './features/clients/ClientLogoCatalog'
 import Profile from './features/profile/Profile'
 import Products from './features/products/Products'
 import ProductCategories from './features/products/ProductCategories'
+import Ingredients from './features/ingredients/Ingredients'
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
           { path: 'cocina', element: <KDS /> },
           { path: 'productos', element: <Products /> },
           { path: 'categorias', element: <ProductCategories /> },
+          { path: 'ingredientes', element: <Ingredients /> },
           { path: 'clientes', element: <ClientLogoCatalog /> },
           { path: 'perfil', element: <Profile /> },
         ],

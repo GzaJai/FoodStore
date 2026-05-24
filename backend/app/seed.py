@@ -3,9 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config.database import async_session, engine
 from app.models.models import (
     Base, User, UserRole, Product, ProductCategoryDef,
-    ClientCategory,
+    ClientCategory, Ingredient,
 )
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.core.security import hash_password
 
 
@@ -33,45 +34,68 @@ async def seed_database():
         db.add_all(users)
         await db.flush()
 
-        # Product Categories (dinámicas, reemplazan el enum)
-        category_data = [
-            ("ALMUERZOS", "Almuerzos", "#f97316"),
-            ("SANDWICHES", "Sándwiches", "#3b82f6"),
-            ("PIZZAS", "Pizzas", "#8b5cf6"),
-            ("DESAYUNOS", "Desayunos", "#10b981"),
-            ("BEBIDAS", "Bebidas", "#06b6d4"),
-            ("POSTRES", "Postres", "#ec4899"),
-            ("ENTRADAS", "Entradas", "#84cc16"),
-            ("OTROS", "Otros", "#6b7280"),
+        # ─── Categorías de Productos (jerarquía padre → hijo) ──────────────
+        #
+        #  Bebidas
+        #   ├── Gaseosas      → Coca Cola, Sprite
+        #   └── Calientes     → Café, Té Verde
+        #  Comidas
+        #   ├── Almuerzos     → Hamburguesa Clásica, Milanesa Napolitana, Ensalada César, Pasta Bolognesa
+        #   ├── Sándwiches    → Tostado Jamón y Queso
+        #   ├── Pizzas        → Pizza Mozzarella
+        #   └── Entradas      → Empanadas x6
+        #  Desayunos          → Café Latte Grande, Barra de Granola Casera
+        #  Postres
+        #  Otros              → Faina
+        #
+        category_defs = [
+            # (key, name, color, parent_key or None)
+            ("BEBIDAS",   "Bebidas",   "#06b6d4", None),
+            ("COMIDAS",   "Comidas",   "#f97316", None),
+            ("DESAYUNOS", "Desayunos", "#10b981", None),
+            ("POSTRES",   "Postres",   "#ec4899", None),
+            ("OTROS",     "Otros",     "#6b7280", None),
+            # Hijos de Bebidas
+            ("GASEOSAS",  "Gaseosas",  "#06b6d4", "BEBIDAS"),
+            ("CALIENTES", "Calientes", "#0891b2", "BEBIDAS"),
+            # Hijos de Comidas
+            ("ALMUERZOS", "Almuerzos", "#f97316", "COMIDAS"),
+            ("SANDWICHES","Sándwiches","#3b82f6", "COMIDAS"),
+            ("PIZZAS",    "Pizzas",    "#8b5cf6", "COMIDAS"),
+            ("ENTRADAS",  "Entradas",  "#84cc16", "COMIDAS"),
         ]
+
         categories = {}
-        for key, name, color in category_data:
-            cat = ProductCategoryDef(
-                id=str(uuid.uuid4()),
-                key=key,
-                name=name,
-                color=color,
-            )
+        for key, name, color, _parent_key in category_defs:
+            cat = ProductCategoryDef(id=str(uuid.uuid4()), key=key, name=name, color=color)
             db.add(cat)
             categories[key] = cat
         await db.flush()
 
-        # Products
+        # Asignar parent_id ahora que tenemos todos los IDs
+        for key, _name, _color, parent_key in category_defs:
+            if parent_key:
+                categories[key].parent_id = categories[parent_key].id
+        await db.flush()
+
+        # ─── Productos ──────────────────────────────────────────────────
         products_data = [
-            ("Hamburguesa Clásica", "Carne 180g, lechuga, tomate, queso", 5500, "ALMUERZOS", 15),
-            ("Pizza Mozzarella", "Pizza grande de muzzarella", 7000, "PIZZAS", 20),
-            ("Faina", "Faina de garbanzos", 2500, "OTROS", 5),
-            ("Milanesa Napolitana", "Milanesa con jamón, queso y salsa", 8000, "ALMUERZOS", 20),
-            ("Empanadas x6", "6 empanadas de carne cortadas a cuchillo", 4500, "ENTRADAS", 10),
-            ("Ensalada César", "Lechuga, pollo grillado, croutons, parmesano", 5000, "ALMUERZOS", 10),
-            ("Pasta Bolognesa", "Tallarines con salsa bolognesa casera", 6500, "ALMUERZOS", 15),
-            ("Coca Cola", "Coca Cola 500ml", 2000, "BEBIDAS", 1),
-            ("Café Latte Grande", "Café latte en taza grande", 3000, "DESAYUNOS", 5),
-            ("Tostado Jamón y Queso", "Tostado de miga con jamón y queso", 3500, "SANDWICHES", 5),
-            ("Té Verde", "Té verde en hebras", 2000, "BEBIDAS", 3),
-            ("Barra de Granola Casera", "Granola casera con miel y frutos secos", 2500, "DESAYUNOS", 2),
+            # name, desc, price, category_key, prep_time
+            ("Hamburguesa Clásica",  "Carne 180g, lechuga, tomate, queso",         5500, "ALMUERZOS", 15),
+            ("Milanesa Napolitana",  "Milanesa con jamón, queso y salsa",           8000, "ALMUERZOS", 20),
+            ("Ensalada César",       "Lechuga, pollo grillado, croutons, parmesano",5000, "ALMUERZOS", 10),
+            ("Pasta Bolognesa",      "Tallarines con salsa bolognesa casera",       6500, "ALMUERZOS", 15),
+            ("Pizza Mozzarella",     "Pizza grande de muzzarella",                  7000, "PIZZAS",    20),
+            ("Tostado Jamón y Queso","Tostado de miga con jamón y queso",           3500, "SANDWICHES", 5),
+            ("Empanadas x6",         "6 empanadas de carne cortadas a cuchillo",    4500, "ENTRADAS",  10),
+            ("Coca Cola",            "Coca Cola 500ml",                             2000, "GASEOSAS",   1),
+            ("Sprite",               "Sprite 500ml",                                2000, "GASEOSAS",   1),
+            ("Café",                 "Café expreso",                                2500, "CALIENTES",  5),
+            ("Té Verde",             "Té verde en hebras",                          2000, "CALIENTES",  3),
+            ("Café Latte Grande",    "Café latte en taza grande",                   3000, "DESAYUNOS",  5),
+            ("Barra de Granola Casera","Granola casera con miel y frutos secos",    2500, "DESAYUNOS",  2),
+            ("Faina",                "Faina de garbanzos",                          2500, "OTROS",      5),
         ]
-        products = []
         for name, desc, price, cat_key, prep in products_data:
             p = Product(
                 id=str(uuid.uuid4()),
@@ -82,7 +106,67 @@ async def seed_database():
                 prep_time_min=prep,
             )
             db.add(p)
-            products.append(p)
+        await db.flush()
+
+        # ─── Ingredientes con alérgenos ──────────────────────────────
+        ingredients_data = [
+            # (name, is_allergen)
+            ("Gluten",       True),
+            ("Lácteos",      True),
+            ("Huevos",       True),
+            ("Maní",         True),
+            ("Mostaza",      True),
+            ("Apio",         True),
+            ("Frutos Secos", True),
+            ("Carne vacuna",  False),
+            ("Pollo",        False),
+            ("Jamón",        False),
+            ("Queso",        False),
+            ("Lechuga",      False),
+            ("Tomate",       False),
+            ("Pan",          False),
+            ("Pasta",        False),
+            ("Salsa de Tomate", False),
+            ("Avena",        False),
+            ("Miel",         False),
+            ("Harina de Garbanzos", False),
+            ("Leche",        False),
+            ("Café",         False),
+            ("Té Verde",     False),
+        ]
+        ingredients = {}
+        for name, is_allergen in ingredients_data:
+            ing = Ingredient(id=str(uuid.uuid4()), name=name, is_allergen=is_allergen)
+            db.add(ing)
+            ingredients[name] = ing
+        await db.flush()
+
+        # ─── Asociar ingredientes a productos ────────────────────────
+        # Buscar productos por nombre con la relación ingredients precargada
+        prod_result = await db.execute(
+            select(Product).options(selectinload(Product.ingredients))
+        )
+        all_products = {p.name: p for p in prod_result.scalars().all()}
+
+        # Incluimos tanto ingredientes reales como marcadores de alérgenos
+        # para que el frontend pueda mostrar advertencias basadas en is_allergen=True
+        product_ingredient_map = {
+            "Hamburguesa Clásica":   ["Pan", "Carne vacuna", "Lechuga", "Tomate", "Queso", "Gluten", "Lácteos"],
+            "Milanesa Napolitana":   ["Carne vacuna", "Pan", "Huevos", "Jamón", "Queso", "Gluten", "Lácteos"],
+            "Ensalada César":        ["Lechuga", "Pollo", "Queso", "Gluten", "Lácteos"],
+            "Pasta Bolognesa":       ["Pasta", "Carne vacuna", "Salsa de Tomate", "Gluten", "Huevos"],
+            "Pizza Mozzarella":      ["Queso", "Salsa de Tomate", "Gluten", "Lácteos"],
+            "Tostado Jamón y Queso": ["Pan", "Jamón", "Queso", "Gluten", "Lácteos"],
+            "Empanadas x6":          ["Carne vacuna", "Gluten", "Huevos"],
+            "Café Latte Grande":     ["Café", "Leche", "Lácteos"],
+            "Barra de Granola Casera": ["Avena", "Miel", "Frutos Secos"],
+            "Faina":                 ["Harina de Garbanzos"],
+        }
+
+        for prod_name, ing_names in product_ingredient_map.items():
+            product = all_products.get(prod_name)
+            if product:
+                product.ingredients = [ingredients[name] for name in ing_names if name in ingredients]
         await db.flush()
 
         # Client Categories

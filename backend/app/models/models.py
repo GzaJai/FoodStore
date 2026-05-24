@@ -32,17 +32,20 @@ class OrderChannel(str, enum.Enum):
 
 
 class ProductCategoryDef(Base):
-    """Categorías dinámicas de producto (reemplaza el enum hardcodeado)"""
+    """Categorías dinámicas de producto con jerarquía padre-hijo"""
     __tablename__ = "product_categories"
 
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     key = Column(String, unique=True, nullable=False, index=True)
     color = Column(String, nullable=True)
+    parent_id = Column(String, ForeignKey("product_categories.id"), nullable=True, index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    parent = relationship("ProductCategoryDef", remote_side=[id], back_populates="children", uselist=False)
+    children = relationship("ProductCategoryDef", back_populates="parent", uselist=True)
     products = relationship("Product", back_populates="category_ref")
 
 
@@ -126,6 +129,33 @@ class Product(Base):
 
     category_ref = relationship("ProductCategoryDef", back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
+    ingredients = relationship("Ingredient", secondary="product_ingredients", back_populates="products")
+
+    @property
+    def category(self) -> str | None:
+        return self.category_ref.key if self.category_ref else None
+
+    @property
+    def category_name(self) -> str | None:
+        return self.category_ref.name if self.category_ref else None
+
+
+class Ingredient(Base):
+    __tablename__ = "ingredients"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, unique=True, nullable=False, index=True)
+    is_allergen = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    products = relationship("Product", secondary="product_ingredients", back_populates="ingredients")
+
+
+class ProductIngredient(Base):
+    __tablename__ = "product_ingredients"
+
+    product_id = Column(String, ForeignKey("products.id", ondelete="CASCADE"), primary_key=True)
+    ingredient_id = Column(String, ForeignKey("ingredients.id", ondelete="CASCADE"), primary_key=True)
 
     @property
     def category(self) -> str | None:

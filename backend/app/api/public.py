@@ -2,12 +2,12 @@ import uuid
 import json
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.config.database import get_db
 from app.models.models import Product, ProductCategoryDef, Order, OrderItem, OrderStatus, OrderChannel
-from app.schemas.schemas import ProductResponse
+from app.schemas.schemas import ProductResponse, ProductPage, PaginationMeta
 from app.ws.manager import manager
 
 logger = logging.getLogger("foodstore.api.public")
@@ -25,20 +25,45 @@ def _generate_order_number() -> str:
 
 @router.get(
     "/products",
-    response_model=list[ProductResponse],
+    response_model=ProductPage,
     summary="Listar productos activos (público)",
-    description="Lista todos los productos activos, sin necesidad de autenticación.",
+    description="Lista paginada de productos activos, sin necesidad de autenticación.",
 )
-async def list_public_products(db: AsyncSession = Depends(get_db)):
+async def list_public_products(
+    page: int = Query(1, ge=1, description="Número de página"),
+    per_page: int = Query(20, ge=1, le=100, description="Productos por página"),
+    db: AsyncSession = Depends(get_db),
+):
     from sqlalchemy.orm import joinedload
+
+    # Count
+    count_result = await db.execute(
+        select(func.count(Product.id)).where(Product.is_active == True)
+    )
+    total = count_result.scalar() or 0
+
+    # Fetch page
+    offset = (page - 1) * per_page
     result = await db.execute(
         select(Product)
-        .options(joinedload(Product.category_ref))
+        .options(joinedload(Product.category_ref), joinedload(Product.ingredients))
         .where(Product.is_active == True)
         .order_by(ProductCategoryDef.name, Product.name)
         .join(ProductCategoryDef, Product.category_id == ProductCategoryDef.id, isouter=True)
+        .offset(offset)
+        .limit(per_page)
     )
-    return [ProductResponse.model_validate(p) for p in result.unique().scalars().all()]
+    items = [ProductResponse.model_validate(p) for p in result.unique().scalars().all()]
+
+    return ProductPage(
+        items=items,
+        meta=PaginationMeta(
+            page=page,
+            per_page=per_page,
+            total=total,
+            total_pages=max(1, (total + per_page - 1) // per_page),
+        ),
+    )
 
 
 # ─── Orders ───────────────────────────────────────────

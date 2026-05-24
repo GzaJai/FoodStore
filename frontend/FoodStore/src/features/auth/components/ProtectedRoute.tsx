@@ -4,7 +4,7 @@ import { useAuthStore } from '../../../stores/authStore'
 import { Loader2 } from 'lucide-react'
 
 const ROLE_ROUTES: Record<string, string[]> = {
-  admin: ['dashboard', 'pedidos', 'cocina', 'productos', 'categorias', 'clientes', 'perfil'],
+  admin: ['dashboard', 'pedidos', 'cocina', 'productos', 'categorias', 'ingredientes', 'clientes', 'perfil'],
   manager: ['dashboard', 'pedidos', 'productos', 'clientes', 'perfil'],
   cook: ['cocina', 'perfil'],
   cashier: ['pedidos', 'perfil'],

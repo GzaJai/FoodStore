@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from app.config.settings import settings
-from app.api import auth, users, products, orders, categories, clients, dashboard, public, product_categories
+from app.api import auth, users, products, orders, categories, clients, dashboard, public, product_categories, ingredients
 from app.seed import seed_database
 from app.ws.manager import manager
 
@@ -52,6 +52,7 @@ app.include_router(product_categories.router)
 app.include_router(clients.router)
 app.include_router(dashboard.router)
 app.include_router(public.router)
+app.include_router(ingredients.router)
 
 # Serve uploaded files
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

@@ -25,15 +25,48 @@ async def list_product_categories(
     )
     categories = result.scalars().all()
 
+    # Build a set of category IDs that are parents (have children)
+    parent_ids = {c.parent_id for c in categories if c.parent_id}
+
     responses = []
     for cat in categories:
         count_result = await db.execute(
             select(func.count(Product.id)).where(Product.category_id == cat.id)
         )
-        cat.product_count = count_result.scalar() or 0
-        responses.append(ProductCategoryResponse.model_validate(cat))
+        responses.append(ProductCategoryResponse(
+            id=cat.id,
+            name=cat.name,
+            key=cat.key,
+            color=cat.color,
+            parent_id=cat.parent_id,
+            is_active=cat.is_active,
+            product_count=count_result.scalar() or 0,
+        ))
 
     return responses
+
+
+async def _validate_parent_id(body, db: AsyncSession, category_id: str | None = None) -> None:
+    """Valida que el parent_id exista, no sea auto-referencia y no cree ciclos."""
+    if body.parent_id is None:
+        return
+
+    # Verificar que el padre exista
+    parent = await db.execute(
+        select(ProductCategoryDef).where(ProductCategoryDef.id == body.parent_id)
+    )
+    if not parent.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La categoría padre no existe",
+        )
+
+    # No puede ser auto-referencia
+    if category_id and body.parent_id == category_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Una categoría no puede ser padre de sí misma",
+        )
 
 
 @router.post(
@@ -58,16 +91,31 @@ async def create_product_category(
             detail=f"Ya existe una categoría con el key '{body.key.upper()}'",
         )
 
+    await _validate_parent_id(body, db)
+
     category = ProductCategoryDef(
         id=str(uuid.uuid4()),
         name=body.name,
         key=body.key.upper(),
         color=body.color,
+        parent_id=body.parent_id,
     )
     db.add(category)
     await db.commit()
     await db.refresh(category)
-    return ProductCategoryResponse.model_validate(category)
+
+    count_result = await db.execute(
+        select(func.count(Product.id)).where(Product.category_id == category.id)
+    )
+    return ProductCategoryResponse(
+        id=category.id,
+        name=category.name,
+        key=category.key,
+        color=category.color,
+        parent_id=category.parent_id,
+        is_active=category.is_active,
+        product_count=count_result.scalar() or 0,
+    )
 
 
 @router.patch(
@@ -92,25 +140,33 @@ async def update_product_category(
             detail="Categoría no encontrada",
         )
 
+    await _validate_parent_id(body, db, category_id)
+
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(category, field, value)
 
     await db.commit()
     await db.refresh(category)
 
-    # Recalcular product_count
     count_result = await db.execute(
         select(func.count(Product.id)).where(Product.category_id == category.id)
     )
-    category.product_count = count_result.scalar() or 0
 
-    return ProductCategoryResponse.model_validate(category)
+    return ProductCategoryResponse(
+        id=category.id,
+        name=category.name,
+        key=category.key,
+        color=category.color,
+        parent_id=category.parent_id,
+        is_active=category.is_active,
+        product_count=count_result.scalar() or 0,
+    )
 
 
 @router.delete(
     "/{category_id}",
     summary="Desactivar categoría de producto",
-    description="Desactiva una categoría (soft delete). Requiere rol ADMIN. No se puede desactivar si tiene productos activos.",
+    description="Desactiva una categoría (soft delete). Requiere rol ADMIN. No se puede desactivar si tiene productos activos o subcategorías activas.",
 )
 async def deactivate_product_category(
     category_id: str,
@@ -125,6 +181,20 @@ async def deactivate_product_category(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoría no encontrada",
+        )
+
+    # Verificar si tiene subcategorías activas
+    children_result = await db.execute(
+        select(func.count(ProductCategoryDef.id)).where(
+            ProductCategoryDef.parent_id == category_id,
+            ProductCategoryDef.is_active == True,
+        )
+    )
+    active_children = children_result.scalar() or 0
+    if active_children > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No se puede desactivar la categoría porque tiene {active_children} subcategoría(s) activa(s). Desactivá las subcategorías primero.",
         )
 
     # Verificar si hay productos activos en esta categoría
