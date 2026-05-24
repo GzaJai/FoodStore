@@ -1,20 +1,6 @@
 // ==========================================
-// HTTP Client con manejo de JWT
+// HTTP Client con autenticación por cookie HttpOnly
 // ==========================================
-
-const TOKEN_KEY = 'foodstore_token'
-
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
-}
-
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
-}
 
 export class ApiError extends Error {
   constructor(
@@ -31,14 +17,13 @@ interface RequestOptions {
   method?: string
   body?: unknown
   params?: Record<string, string | number | boolean | undefined | null>
-  auth?: boolean
 }
 
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = 'GET', body, params, auth = true } = options
+  const { method = 'GET', body, params } = options
 
   // Build URL
   const baseUrl = import.meta.env.VITE_API_URL || window.location.origin
@@ -57,17 +42,11 @@ export async function apiRequest<T>(
     'Content-Type': 'application/json',
   }
 
-  if (auth) {
-    const token = getToken()
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-  }
-
-  // Make request
+  // Make request — la cookie HttpOnly se envía automáticamente
   const response = await fetch(url.toString(), {
     method,
     headers,
+    credentials: 'include',
     body: body ? JSON.stringify(body) : undefined,
   })
 

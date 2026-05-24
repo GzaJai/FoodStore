@@ -2,7 +2,7 @@ import { apiRequest } from './client'
 import type { ApiProductResponse, ApiOrderResponse } from '../types/api'
 
 export async function listPublicProductsApi(): Promise<ApiProductResponse[]> {
-  return apiRequest<ApiProductResponse[]>('/api/public/products', { auth: false })
+  return apiRequest<ApiProductResponse[]>('/api/public/products')
 }
 
 export interface PublicOrderPayload {
@@ -23,6 +23,5 @@ export async function createPublicOrderApi(body: PublicOrderPayload): Promise<Ap
   return apiRequest<ApiOrderResponse>('/api/public/orders', {
     method: 'POST',
     body,
-    auth: false,
   })
 }

@@ -1,19 +1,35 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.config.database import get_db
+from app.config.settings import settings
 from app.models.models import User
 from app.core.security import decode_access_token
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+
+def _extract_token(request: Request, credentials: HTTPAuthorizationCredentials | None) -> str | None:
+    """Extrae el JWT: primero de la cookie, luego del header Authorization."""
+    token = request.cookies.get(settings.COOKIE_NAME)
+    if token:
+        return token
+    if credentials:
+        return credentials.credentials
+    return None
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    payload = decode_access_token(credentials.credentials)
+    token = _extract_token(request, credentials)
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autenticado")
+
+    payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
 

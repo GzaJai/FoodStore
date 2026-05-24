@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import { loginApi, getMeApi } from '../api/auth'
-import { setToken, clearToken, getToken } from '../api/client'
+import { loginApi, getMeApi, logoutApi } from '../api/auth'
 import { mapUser } from '../api/mappers'
 
 export interface User {
@@ -18,7 +17,7 @@ export interface AuthState {
   isLoading: boolean
   _isHydrated: boolean
   login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   updateUser: (data: Partial<User>) => void
   checkAuth: () => Promise<boolean>
 }
@@ -40,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true })
     try {
       const res = await loginApi(email, password)
-      setToken(res.token)
+      // El backend setea la cookie HttpOnly automáticamente
       set({
         user: mapUser(res.user),
         isAuthenticated: true,
@@ -54,8 +53,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  logout: () => {
-    clearToken()
+  logout: async () => {
+    try {
+      await logoutApi()
+    } catch {
+      // Si el backend ya expiró o no responde, igual limpiamos el estado local
+    }
     set({ user: null, isAuthenticated: false, _isHydrated: true })
   },
 
@@ -65,12 +68,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     })),
 
   checkAuth: async () => {
-    const token = getToken()
-    if (!token) {
-      set({ user: null, isAuthenticated: false, _isHydrated: true })
-      return false
-    }
-
     try {
       const apiUser = await getMeApi()
       set({
@@ -80,7 +77,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       })
       return true
     } catch {
-      clearToken()
       set({ user: null, isAuthenticated: false, _isHydrated: true })
       return false
     }

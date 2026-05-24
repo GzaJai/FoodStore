@@ -14,6 +14,12 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:5174"]
 
+    # Cookie-based JWT
+    COOKIE_NAME: str = "foodstore_token"
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: str | None = None
+
     UPLOAD_DIR: str = "app/uploads"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
