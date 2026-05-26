@@ -336,3 +336,14 @@ class ProductPage(BaseModel):
 class IngredientPage(BaseModel):
     items: list["IngredientResponse"]
     meta: PaginationMeta
+
+
+# ==========================================
+# MERCADO PAGO
+# ==========================================
+
+class PreferenceResponse(BaseModel):
+    init_point: str
+    preference_id: str
+    order_id: int
+    order_number: str

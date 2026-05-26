@@ -232,6 +232,13 @@ export interface ProductPage {
   meta: PaginationMeta
 }
 
+export interface PreferenceResponse {
+  init_point: string
+  preference_id: string
+  order_id: number
+  order_number: string
+}
+
 export interface IngredientPage {
   items: ApiIngredientResponse[]
   meta: PaginationMeta

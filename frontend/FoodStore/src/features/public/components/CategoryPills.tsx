@@ -21,7 +21,7 @@ export function CategoryPills({ categories, activeCategory, onSelect }: Category
                   : 'border border-gray-200 text-gray-700 bg-white rounded-2xl px-5 py-2.5 font-medium'
               }`}
             >
-              {isAll ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+              {isAll ? 'Todos' : cat.charAt(0) + cat.slice(1).toLowerCase()}
             </button>
           )
         })}

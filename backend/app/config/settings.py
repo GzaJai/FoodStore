@@ -22,6 +22,10 @@ class Settings(BaseSettings):
 
     UPLOAD_DIR: str = "app/uploads"
 
+    # Mercado Pago
+    MERCADO_PAGO_ACCESS_TOKEN: str = ""
+    FRONTEND_URL: str = "http://localhost:5173"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

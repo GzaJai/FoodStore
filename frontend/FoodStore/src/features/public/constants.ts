@@ -39,6 +39,16 @@ export const CATEGORY_EMOJI: Record<string, string> = {
 
 export type Page = 'catalog' | 'cart' | 'checkout-info' | 'checkout-payment' | 'confirmed' | 'product-detail' | 'profile'
 
+export type SortOption = 'default' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc'
+
+export const SORT_LABELS: Record<SortOption, string> = {
+  default: 'Por defecto',
+  'name-asc': 'Nombre A-Z',
+  'name-desc': 'Nombre Z-A',
+  'price-asc': 'Menor precio',
+  'price-desc': 'Mayor precio',
+}
+
 export interface ChannelOption {
   value: PublicOrderPayload['channel']
   label: string

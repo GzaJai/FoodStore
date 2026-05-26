@@ -1,4 +1,4 @@
-import { ChevronLeft, Check, Loader2, User, Phone, Mail, Bike, ShoppingBag, UtensilsCrossed, Store } from 'lucide-react'
+import { ChevronLeft, Loader2, User, Phone, Mail, Bike, ShoppingBag, UtensilsCrossed } from 'lucide-react'
 import type { ApiProductResponse } from '../../../types/api'
 import type { PublicOrderPayload } from '../../../api/public'
 import { formatPrice } from '../constants'
@@ -13,7 +13,7 @@ interface CheckoutPaymentViewProps {
   formError: string | null
   isProcessing: boolean
   onBack: () => void
-  onConfirm: () => void
+  onMpPayment: () => void
 }
 
 export function CheckoutPaymentView({
@@ -26,7 +26,7 @@ export function CheckoutPaymentView({
   formError,
   isProcessing,
   onBack,
-  onConfirm,
+  onMpPayment,
 }: CheckoutPaymentViewProps) {
   const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0)
   const tax = subtotal * 0.21
@@ -53,7 +53,7 @@ export function CheckoutPaymentView({
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {formError && (
-          <div className="bg-error-container text-on-error-container text-body-sm rounded-xl p-3">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-body-sm rounded-xl p-3">
             {formError}
           </div>
         )}
@@ -89,37 +89,34 @@ export function CheckoutPaymentView({
             {channel === 'DELIVERY' && address && ` — ${address}`}
           </p>
         </div>
-
-        <div className="bg-surface-container rounded-xl p-3 text-body-sm text-on-surface-variant flex items-start gap-2">
-          <Store size={16} className="mt-0.5 shrink-0" />
-          <span>
-            Pago simulado. {/* TODO: Integrar con Mercado Pago */}
-            Cuando integremos Mercado Pago, aquí se abrirá el checkout para pagar con débito, crédito o efectivo.
-          </span>
-        </div>
       </div>
 
-      <div className="bg-surface-container-lowest border-t border-outline-variant p-4 space-y-2">
+      <div className="bg-surface-container-lowest border-t border-outline-variant p-4 space-y-3">
         {isProcessing && (
           <div className="flex items-center justify-center gap-2 text-body-sm text-on-surface-variant">
             <Loader2 size={16} className="animate-spin" />
-            Procesando pago...
+            Conectando con Mercado Pago...
           </div>
         )}
         <button
-          onClick={onConfirm}
+          onClick={onMpPayment}
           disabled={isProcessing}
-          className="w-full bg-primary-container text-on-primary font-bold py-4 rounded-xl active:scale-[0.98] transition-transform text-body-lg disabled:opacity-60 disabled:active:scale-100 flex items-center justify-center gap-2"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl active:scale-[0.98] transition-transform text-body-lg disabled:opacity-60 disabled:active:scale-100 flex items-center justify-center gap-2 shadow-md"
         >
           {isProcessing ? (
             <Loader2 size={20} className="animate-spin" />
           ) : (
             <>
-              <Check size={20} />
-              Confirmar pago
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-4-4 1.41-1.41L11 14.17l4.59-4.59L17 11l-6 6z"/>
+              </svg>
+              Pagar con Mercado Pago
             </>
           )}
         </button>
+        <p className="text-xs text-center text-gray-400">
+          Pagá con débito, crédito o efectivo. Redirigimos a Mercado Pago.
+        </p>
       </div>
     </div>
   )

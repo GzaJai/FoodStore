@@ -1,7 +1,7 @@
 import { ChevronLeft, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react'
 import type { ApiProductResponse } from '../../../types/api'
 import type { Page } from '../constants'
-import { formatPrice, CATEGORY_BG, CATEGORY_EMOJI } from '../constants'
+import { formatPrice, CATEGORY_BG, CATEGORY_EMOJI, PRODUCT_IMAGES } from '../constants'
 import { PublicBottomNav } from './PublicBottomNav'
 
 interface CartViewProps {
@@ -46,10 +46,19 @@ export function CartView({
           items.map((item) => (
             <div key={item.product.id} className="bg-surface-container-lowest rounded-xl p-4 delicious-shadow flex items-center gap-3">
               <div
-                className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden"
                 style={{ backgroundColor: CATEGORY_BG[item.product.category] ?? '#F5F5F5' }}
               >
-                {CATEGORY_EMOJI[item.product.category] ?? '🍴'}
+                {PRODUCT_IMAGES[item.product.name] ? (
+                  <img
+                    src={PRODUCT_IMAGES[item.product.name]}
+                    alt={item.product.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  CATEGORY_EMOJI[item.product.category] ?? '🍴'
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-title-md font-title text-on-surface truncate">{item.product.name}</p>

@@ -5,7 +5,7 @@ from app.models.models import (
     Base, User, UserRole, Product, ProductCategoryDef,
     ClientCategory, Ingredient,
 )
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import selectinload
 from app.core.security import hash_password
 
@@ -14,6 +14,15 @@ async def seed_database():
     # Create tables if they don't exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Safe migration: add Mercado Pago columns if missing
+        for col_sql in [
+            "ALTER TABLE orders ADD COLUMN mp_preference_id TEXT",
+            "ALTER TABLE orders ADD COLUMN mp_payment_status TEXT DEFAULT 'pending'",
+        ]:
+            try:
+                await conn.execute(text(col_sql))
+            except Exception:
+                pass  # Column already exists
 
     async with async_session() as db:
         # Verificar si ya hay datos

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { useCartStore } from '../../stores/cartStore'
-import { listPublicProductsApi, createPublicOrderApi, type PublicOrderPayload } from '../../api/public'
+import { listPublicProductsApi, createPublicOrderApi, createPaymentPreferenceApi, type PublicOrderPayload } from '../../api/public'
 import type { ApiProductResponse } from '../../types/api'
-import type { Page } from './constants'
+import type { Page, SortOption } from './constants'
 import { CatalogView } from './components/CatalogView'
 import { ProductDetailView } from './components/ProductDetailView'
 import { ProfileView } from './components/ProfileView'
@@ -18,6 +18,8 @@ export default function PublicMenu() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('default')
   const [page, setPage] = useState<Page>('catalog')
   const { items, addItem, updateQuantity, totalItems, clearCart } = useCartStore()
 
@@ -34,6 +36,7 @@ export default function PublicMenu() {
   const [selectedProduct, setSelectedProduct] = useState<ApiProductResponse | null>(null)
   const [detailQuantity, setDetailQuantity] = useState(1)
 
+  // ─── Cargar productos ──────────────────────────────────────────────
   useEffect(() => {
     setIsLoading(true)
     setError(null)
@@ -42,6 +45,23 @@ export default function PublicMenu() {
       .catch(() => setError('No pudimos cargar el menú. Intentalo de nuevo más tarde.'))
       .finally(() => setIsLoading(false))
   }, [])
+
+  // ─── Detectar retorno de Mercado Pago ─────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const paymentStatus = params.get('payment')
+    const orderNumberParam = params.get('order')
+
+    if (paymentStatus === 'success' && orderNumberParam) {
+      setOrderNumber(orderNumberParam)
+      setPage('confirmed')
+      clearCart()
+      window.history.replaceState({}, '', '/')
+    } else if (paymentStatus === 'failure') {
+      setFormError('El pago no pudo ser procesado. Intentalo de nuevo.')
+      window.history.replaceState({}, '', '/')
+    }
+  }, [clearCart])
 
   const categories = ['ALL', ...new Set(products.map((p) => p.category))]
 
@@ -82,11 +102,9 @@ export default function PublicMenu() {
     setPage('checkout-payment')
   }
 
-  const handleConfirmPayment = async () => {
+  const handleMercadoPagoPayment = async () => {
     setIsProcessing(true)
     setFormError(null)
-
-    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     try {
       const payload: PublicOrderPayload = {
@@ -101,12 +119,12 @@ export default function PublicMenu() {
           quantity: item.quantity,
         })),
       }
-      const order = await createPublicOrderApi(payload)
-      setOrderNumber(order.order_number)
-      setPage('confirmed')
-      clearCart()
-    } catch {
-      setFormError('Hubo un error al procesar el pedido. Intentalo de nuevo.')
+      const preference = await createPaymentPreferenceApi(payload)
+      // Redirigir al checkout de Mercado Pago
+      window.location.href = preference.init_point
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Hubo un error al conectar con Mercado Pago. Intentalo de nuevo.'
+      setFormError(message)
     } finally {
       setIsProcessing(false)
     }
@@ -146,9 +164,13 @@ export default function PublicMenu() {
           isLoading={isLoading}
           categories={categories}
           activeCategory={activeCategory}
+          searchQuery={searchQuery}
+          sortBy={sortBy}
           totalCartItems={totalItems()}
           activePage={page}
+          onSearchChange={setSearchQuery}
           onCategorySelect={setActiveCategory}
+          onSortChange={setSortBy}
           onProductSelect={goToDetail}
           onNavigate={navigate}
         />
@@ -231,7 +253,7 @@ export default function PublicMenu() {
           formError={formError}
           isProcessing={isProcessing}
           onBack={() => setPage('checkout-info')}
-          onConfirm={handleConfirmPayment}
+          onMpPayment={handleMercadoPagoPayment}
         />
       )
 

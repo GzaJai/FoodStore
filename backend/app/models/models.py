@@ -92,6 +92,8 @@ class Order(Base):
     cancelled_at = Column(DateTime, nullable=True)
     cancel_reason = Column(String, nullable=True)
     created_by_id = Column(String, ForeignKey("users.id"), nullable=True)
+    mp_preference_id = Column(String, nullable=True, index=True)
+    mp_payment_status = Column(String, nullable=True)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     created_by = relationship("User", back_populates="orders_created")

@@ -1,12 +1,14 @@
 import { apiRequest } from './client'
-import type { ApiOrderResponse, ProductPage } from '../types/api'
+import type { ApiOrderResponse, ProductPage, PreferenceResponse } from '../types/api'
 
 export async function listPublicProductsApi(params?: {
   page?: number
   per_page?: number
+  search?: string
+  category_id?: string
 }): Promise<ProductPage> {
   return apiRequest<ProductPage>('/api/public/products', {
-    params: params as Record<string, number | undefined>,
+    params: params as Record<string, string | number | undefined>,
   })
 }
 
@@ -26,6 +28,13 @@ export interface PublicOrderPayload {
 
 export async function createPublicOrderApi(body: PublicOrderPayload): Promise<ApiOrderResponse> {
   return apiRequest<ApiOrderResponse>('/api/public/orders', {
+    method: 'POST',
+    body,
+  })
+}
+
+export async function createPaymentPreferenceApi(body: PublicOrderPayload): Promise<PreferenceResponse> {
+  return apiRequest<PreferenceResponse>('/api/public/create-preference', {
     method: 'POST',
     body,
   })

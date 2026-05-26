@@ -1,4 +1,4 @@
-import { Home, ShoppingCart, User } from 'lucide-react'
+import { ShoppingCart, User, UtensilsCrossed } from 'lucide-react'
 import type { Page } from '../constants'
 
 interface PublicBottomNavProps {
@@ -20,9 +20,14 @@ export function PublicBottomNav({ activePage, totalCartItems, onNavigate }: Publ
           <User size={28} strokeWidth={2.5} />
         </button>
 
-        <button onClick={() => onNavigate('catalog')} className="relative transition-colors">
-          <div className="bg-white text-primary-container w-14 h-14 rounded-full flex items-center justify-center -mt-8 shadow-xl active:scale-95 transition-transform">
-            <Home size={32} strokeWidth={2.5} />
+        <button
+          onClick={() => onNavigate('catalog')}
+          className="relative transition-transform active:scale-95"
+        >
+          <div className="bg-primary-container w-20 h-20 rounded-full flex items-center justify-center -mt-10">
+            <div className="bg-white text-primary-container w-14 h-14 rounded-full flex items-center justify-center">
+              <UtensilsCrossed size={32} strokeWidth={2.5} />
+            </div>
           </div>
         </button>
 
