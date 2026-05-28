@@ -1,15 +1,16 @@
 import uuid
 import json
+import asyncio
 import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-import httpx
+import mercadopago
 from app.config.database import get_db
 from app.config.settings import settings
 from app.models.models import Product, ProductCategoryDef, Order, OrderItem, OrderStatus, OrderChannel
-from app.schemas.schemas import ProductResponse, ProductPage, PaginationMeta, PreferenceResponse
+from app.schemas.schemas import ProductResponse, ProductPage, PaginationMeta, PreferenceResponse, PaymentResponse
 from app.ws.manager import manager
 
 logger = logging.getLogger("foodstore.api.public")
@@ -293,42 +294,57 @@ async def create_mp_preference(
     await db.refresh(order, ["items"])
 
     # ── Crear preferencia en Mercado Pago ──
-    preference_data = {
+    preference_data: dict = {
         "items": mp_items,
         "payer": {"name": customer_name},
         "external_reference": str(order.id),
-        "back_urls": {
-            "success": f"{settings.FRONTEND_URL}/?payment=success&order={order.order_number}",
-            "failure": f"{settings.FRONTEND_URL}/?payment=failure&order={order.order_number}",
-            "pending": f"{settings.FRONTEND_URL}/?payment=pending&order={order.order_number}",
-        },
-        "auto_return": "approved",
-        "notification_url": f"{settings.FRONTEND_URL}/api/webhooks/mercadopago",
         "statement_descriptor": "FOODSTORE",
     }
 
+    # MP en producción exige HTTPS para back_urls y notification_url.
+    # En sandbox (TEST-) o si explícitamente se configura MP_IS_SANDBOX=true,
+    # enviamos las URLs aunque sean HTTP.
+    # En producción solo las enviamos si FRONTEND_URL es HTTPS.
+    # Si nada aplica, el usuario debe configurarlas desde el Dashboard de MP.
+    mp_is_sandbox = (
+        settings.MP_IS_SANDBOX
+        if settings.MP_IS_SANDBOX is not None
+        else settings.MERCADO_PAGO_ACCESS_TOKEN.startswith("TEST-")
+    )
+    can_send_urls = mp_is_sandbox or settings.FRONTEND_URL.startswith("https://")
+
+    if can_send_urls:
+        # MP NO acepta localhost en back_urls con auto_return (documentado).
+        # Si la URL es localhost, mandamos back_urls sin auto_return para
+        # que el usuario vuelva manualmente clickeando "Volver al sitio".
+        is_local_url = "localhost" in settings.FRONTEND_URL or "127.0.0.1" in settings.FRONTEND_URL
+
+        preference_data["back_urls"] = {
+            "success": f"{settings.FRONTEND_URL}/?payment=success&order={order.order_number}",
+            "failure": f"{settings.FRONTEND_URL}/?payment=failure&order={order.order_number}",
+            "pending": f"{settings.FRONTEND_URL}/?payment=pending&order={order.order_number}",
+        }
+        if not is_local_url:
+            preference_data["auto_return"] = "approved"
+        preference_data["notification_url"] = f"{settings.BACKEND_URL}/api/webhooks/mercadopago"
+    else:
+        logger.warning(
+            "Token de producción con FRONTEND_URL HTTP (%s). "
+            "No se enviaron back_urls ni notification_url. "
+            "Configuralos en el Dashboard de MP para que el flujo completo funcione.",
+            settings.FRONTEND_URL,
+        )
+
     try:
-        async with httpx.AsyncClient() as client:
-            mp_res = await client.post(
-                "https://api.mercadopago.com/checkout/preferences",
-                headers={
-                    "Authorization": f"Bearer {settings.MERCADO_PAGO_ACCESS_TOKEN}",
-                    "Content-Type": "application/json",
-                },
-                json=preference_data,
-                timeout=30,
-            )
-        if mp_res.status_code not in (200, 201):
-            logger.error("Mercado Pago error: %s — %s", mp_res.status_code, mp_res.text)
-            raise HTTPException(status_code=502, detail="Error al crear la preferencia de pago")
+        sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+        preference_response = await asyncio.to_thread(sdk.preference().create, preference_data)
+        preference = preference_response["response"]
+    except Exception as e:
+        logger.error("Error al crear preferencia en Mercado Pago: %s", e)
+        raise HTTPException(status_code=502, detail="No se pudo crear la preferencia de pago con Mercado Pago")
 
-        mp_data = mp_res.json()
-    except httpx.RequestError as e:
-        logger.error("Error de conexión con Mercado Pago: %s", e)
-        raise HTTPException(status_code=502, detail="No se pudo conectar con Mercado Pago")
-
-    preference_id = mp_data["id"]
-    init_point = mp_data["init_point"]
+    preference_id = preference["id"]
+    init_point = preference["init_point"]
 
     # Guardar preference_id en la orden
     order.mp_preference_id = preference_id
@@ -350,3 +366,86 @@ async def create_mp_preference(
         order_id=order.id,
         order_number=order.order_number,
     )
+
+
+@router.post(
+    "/create-payment",
+    response_model=PaymentResponse,
+    status_code=201,
+    summary="Procesar pago con tarjeta (Mercado Pago CardPayment)",
+    description="""
+    Procesa un pago usando el token de tarjeta generado por el CardPayment Brick.
+    El token se obtiene del onSubmit del brick y se envía junto con el ID de la orden.
+    """,
+)
+async def create_mp_payment(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Body esperado:
+    {
+        "order_id": int,
+        "card_token": str
+    }
+    """
+    order_id = body.get("order_id")
+    card_token = body.get("card_token")
+
+    if not order_id or not card_token:
+        raise HTTPException(status_code=400, detail="order_id y card_token son requeridos")
+
+    if not settings.MERCADO_PAGO_ACCESS_TOKEN:
+        raise HTTPException(status_code=500, detail="Mercado Pago no está configurado")
+
+    # Buscar la orden
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+
+    # Armar datos del pago
+    # NOTA: idempotency_key no va en el body en SDK v3+, va como header X-Idempotency-Key
+    payment_data = {
+        "transaction_amount": float(order.total),
+        "token": card_token,
+        "description": f"Pedido #{order.order_number}",
+        "installments": 1,
+        "payer": {"email": order.customer_email or "cliente@foodstore.com"},
+        "external_reference": str(order.id),
+    }
+
+    try:
+        sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+        payment_response = await asyncio.to_thread(sdk.payment().create, payment_data)
+
+        if payment_response.get("status") not in (200, 201):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Error de Mercado Pago: {payment_response.get('response', {})}",
+            )
+
+        mp_data = payment_response.get("response", {})
+        mp_payment_id = mp_data.get("id")
+        mp_status = mp_data.get("status")
+        status_detail = mp_data.get("status_detail")
+
+        # Actualizar la orden con la info del pago
+        order.mp_payment_id = mp_payment_id
+        order.mp_payment_status = mp_status
+        await db.commit()
+        await db.refresh(order)
+
+        return PaymentResponse(
+            status=mp_status,
+            status_detail=status_detail,
+            mp_payment_id=mp_payment_id,
+            order_id=order.id,
+            order_number=order.order_number,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error al procesar pago en Mercado Pago: %s", e)
+        raise HTTPException(status_code=502, detail="Error al procesar el pago con Mercado Pago")

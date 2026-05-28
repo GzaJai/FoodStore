@@ -20,6 +20,8 @@ export function listProductsApi(params?: {
 }
 
 export function createProductApi(body: ApiProductCreate): Promise<ApiProductResponse> {
+  console.log(body);
+  
   return apiRequest<ApiProductResponse>('/api/products', {
     method: 'POST',
     body,

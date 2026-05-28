@@ -28,7 +28,7 @@ export function ConfirmedView({ orderNumber, onBackToCatalog }: ConfirmedViewPro
 
         <button
           onClick={onBackToCatalog}
-          className="text-on-primary font-bold py-4 px-8 rounded-xl active:scale-[0.98] transition-transform text-body-lg"
+          className="bg-primary text-on-primary font-bold py-4 px-8 rounded-xl active:scale-[0.98] transition-transform text-body-lg"
         >
           Seguir viendo el menú
         </button>

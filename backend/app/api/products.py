@@ -94,10 +94,12 @@ async def create_product(
 
     # Asociar ingredientes
     if body.ingredient_ids:
-        ingredients = await db.execute(
+        result = await db.execute(
             select(Ingredient).where(Ingredient.id.in_(body.ingredient_ids))
         )
-        product.ingredients = ingredients.scalars().all()
+        ingredient_list = result.scalars().all()
+        # Usamos run_sync para evitar MissingGreenlet al setear la relación
+        await db.run_sync(lambda _: setattr(product, "ingredients", ingredient_list))
 
     await db.commit()
     await db.refresh(product)
@@ -141,10 +143,12 @@ async def update_product(
 
     # Actualizar ingredientes si se enviaron
     if ingredient_ids is not None:
-        ingredients = await db.execute(
+        result = await db.execute(
             select(Ingredient).where(Ingredient.id.in_(ingredient_ids))
         )
-        product.ingredients = ingredients.scalars().all()
+        ingredient_list = result.scalars().all()
+        # Usamos run_sync para evitar MissingGreenlet al setear la relación
+        await db.run_sync(lambda _: setattr(product, "ingredients", ingredient_list))
 
     await db.commit()
     await db.refresh(product)

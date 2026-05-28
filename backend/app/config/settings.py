@@ -24,7 +24,10 @@ class Settings(BaseSettings):
 
     # Mercado Pago
     MERCADO_PAGO_ACCESS_TOKEN: str = ""
-    FRONTEND_URL: str = "http://localhost:5173"
+    MERCADO_PAGO_PUBLIC_KEY: str = ""
+    FRONTEND_URL: str = "http://localhost:5174"
+    BACKEND_URL: str = "http://localhost:3000"
+    MP_IS_SANDBOX: bool | None = None  # None = auto-detect por prefijo TEST-; True/False = override
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

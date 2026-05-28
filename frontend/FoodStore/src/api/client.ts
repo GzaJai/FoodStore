@@ -26,7 +26,7 @@ export async function apiRequest<T>(
   const { method = 'GET', body, params } = options
 
   // Build URL
-  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin
+  const baseUrl = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin)
   const url = new URL(path, baseUrl)
 
   if (params) {

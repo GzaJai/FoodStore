@@ -18,6 +18,7 @@ async def seed_database():
         for col_sql in [
             "ALTER TABLE orders ADD COLUMN mp_preference_id TEXT",
             "ALTER TABLE orders ADD COLUMN mp_payment_status TEXT DEFAULT 'pending'",
+            "ALTER TABLE orders ADD COLUMN mp_payment_id INTEGER",
         ]:
             try:
                 await conn.execute(text(col_sql))

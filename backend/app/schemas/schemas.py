@@ -347,3 +347,11 @@ class PreferenceResponse(BaseModel):
     preference_id: str
     order_id: int
     order_number: str
+
+
+class PaymentResponse(BaseModel):
+    status: str
+    status_detail: str | None = None
+    mp_payment_id: int | None = None
+    order_id: int
+    order_number: str

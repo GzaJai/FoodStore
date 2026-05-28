@@ -1,8 +1,9 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import asyncio
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-import httpx
+import mercadopago
 from app.config.database import get_db
 from app.config.settings import settings
 from app.models.models import Order
@@ -46,36 +47,51 @@ async def mercadopago_ipn(request: Request, db: AsyncSession = Depends(get_db)):
 
     # Consultar el pago para obtener el preference_id
     try:
-        async with httpx.AsyncClient() as client:
-            res = await client.get(
-                f"https://api.mercadopago.com/v1/payments/{resource_id}",
-                headers={"Authorization": f"Bearer {settings.MERCADO_PAGO_ACCESS_TOKEN}"},
-                timeout=15,
-            )
-        if res.status_code != 200:
-            logger.error("Error al consultar pago %s: %s", resource_id, res.status_code)
-            return {"received": True}
-
-        payment = res.json()
-    except httpx.RequestError as e:
-        logger.error("Error de conexión al consultar pago: %s", e)
+        sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+        payment_response = await asyncio.to_thread(sdk.payment().get, int(resource_id))
+        payment = payment_response["response"]
+    except Exception as e:
+        logger.error("Error al consultar pago %s: %s", resource_id, e)
         return {"received": True}
 
-    preference_id = payment.get("preference_id")
     status_mp = payment.get("status")  # approved, rejected, in_process, etc.
+    external_reference = payment.get("external_reference")
 
-    if not preference_id:
-        logger.warning("Pago %s no tiene preference_id", resource_id)
-        return {"received": True}
+    # Buscar la orden: primero por mp_payment_id, luego por mp_preference_id, luego por external_reference
+    order = None
+    mp_payment_id_int = int(resource_id)
 
-    # Buscar la orden por mp_preference_id
+    # Intentar por mp_payment_id
     result = await db.execute(
-        select(Order).where(Order.mp_preference_id == preference_id)
+        select(Order).where(Order.mp_payment_id == mp_payment_id_int)
     )
     order = result.scalar_one_or_none()
 
+    # Intentar por mp_preference_id
     if not order:
-        logger.warning("No se encontró orden con preference_id %s", preference_id)
+        preference_id = payment.get("preference_id")
+        if preference_id:
+            result = await db.execute(
+                select(Order).where(Order.mp_preference_id == preference_id)
+            )
+            order = result.scalar_one_or_none()
+
+    # Intentar por external_reference (para pagos sin preferencia)
+    if not order and external_reference:
+        try:
+            ext_order_id = int(external_reference)
+            result = await db.execute(select(Order).where(Order.id == ext_order_id))
+            order = result.scalar_one_or_none()
+        except (ValueError, TypeError):
+            pass
+
+    if not order:
+        logger.warning(
+            "No se encontró orden para pago %s (preference_id=%s, external_reference=%s)",
+            resource_id,
+            payment.get("preference_id"),
+            external_reference,
+        )
         return {"received": True}
 
     # Mapear estado de MP a estado interno
@@ -90,6 +106,8 @@ async def mercadopago_ipn(request: Request, db: AsyncSession = Depends(get_db)):
     }
 
     order.mp_payment_status = status_mp
+    if not order.mp_payment_id:
+        order.mp_payment_id = mp_payment_id_int
     if status_mp in mp_to_order_status:
         from app.models.models import OrderStatus
         mapped = mp_to_order_status[status_mp]

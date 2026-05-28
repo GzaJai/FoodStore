@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { useCartStore } from '../../stores/cartStore'
-import { listPublicProductsApi, createPublicOrderApi, createPaymentPreferenceApi, type PublicOrderPayload } from '../../api/public'
+import { listPublicProductsApi, type PublicOrderPayload } from '../../api/public'
 import type { ApiProductResponse } from '../../types/api'
 import type { Page, SortOption } from './constants'
 import { CatalogView } from './components/CatalogView'
@@ -29,7 +29,6 @@ export default function PublicMenu() {
   const [channel, setChannel] = useState<PublicOrderPayload['channel']>('TAKEAWAY')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -102,32 +101,10 @@ export default function PublicMenu() {
     setPage('checkout-payment')
   }
 
-  const handleMercadoPagoPayment = async () => {
-    setIsProcessing(true)
-    setFormError(null)
-
-    try {
-      const payload: PublicOrderPayload = {
-        customer_name: customerName.trim(),
-        customer_phone: customerPhone.trim(),
-        customer_email: customerEmail.trim() || undefined,
-        channel,
-        address: channel === 'DELIVERY' ? address.trim() : undefined,
-        notes: notes.trim() || undefined,
-        items: items.map((item) => ({
-          product_id: item.product.id,
-          quantity: item.quantity,
-        })),
-      }
-      const preference = await createPaymentPreferenceApi(payload)
-      // Redirigir al checkout de Mercado Pago
-      window.location.href = preference.init_point
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Hubo un error al conectar con Mercado Pago. Intentalo de nuevo.'
-      setFormError(message)
-    } finally {
-      setIsProcessing(false)
-    }
+  const handlePaymentComplete = (orderNumber: string) => {
+    setOrderNumber(orderNumber)
+    clearCart()
+    setPage('confirmed')
   }
 
   const handleAddToCart = () => {
@@ -250,10 +227,11 @@ export default function PublicMenu() {
           customerEmail={customerEmail}
           channel={channel}
           address={address}
+          notes={notes}
           formError={formError}
-          isProcessing={isProcessing}
           onBack={() => setPage('checkout-info')}
-          onMpPayment={handleMercadoPagoPayment}
+          onPaymentComplete={handlePaymentComplete}
+          onClearCart={clearCart}
         />
       )
 

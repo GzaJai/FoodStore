@@ -94,6 +94,7 @@ class Order(Base):
     created_by_id = Column(String, ForeignKey("users.id"), nullable=True)
     mp_preference_id = Column(String, nullable=True, index=True)
     mp_payment_status = Column(String, nullable=True)
+    mp_payment_id = Column(Integer, nullable=True, index=True)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     created_by = relationship("User", back_populates="orders_created")

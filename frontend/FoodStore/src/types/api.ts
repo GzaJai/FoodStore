@@ -239,6 +239,14 @@ export interface PreferenceResponse {
   order_number: string
 }
 
+export interface PaymentResponse {
+  status: string
+  status_detail: string | null
+  mp_payment_id: number | null
+  order_id: number
+  order_number: string
+}
+
 export interface IngredientPage {
   items: ApiIngredientResponse[]
   meta: PaginationMeta
