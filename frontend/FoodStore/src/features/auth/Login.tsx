@@ -13,6 +13,10 @@ function getDefaultRoute(role?: string): string {
       return '/negocio/cocina'
     case 'cashier':
       return '/negocio/pedidos'
+    case 'delivery':
+      return '/negocio/reparto'
+    case 'customer':
+      return '/'  // Clientes van al menú público
     default:
       return '/negocio/dashboard'
   }
@@ -165,6 +169,28 @@ export default function Login() {
                   }}
                 >
                   Cocina
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  fullWidth
+                  onClick={async () => {
+                    await login('caja@foodstore.com', 'caja123')
+                    navigate('/negocio/pedidos', { replace: true })
+                  }}
+                >
+                  Caja
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  fullWidth
+                  onClick={async () => {
+                    await login('reparto@foodstore.com', 'reparto123')
+                    navigate('/negocio/reparto', { replace: true })
+                  }}
+                >
+                  Reparto
                 </Button>
               </div>
             </div>

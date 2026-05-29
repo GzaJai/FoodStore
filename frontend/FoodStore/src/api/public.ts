@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import type { ApiOrderResponse, ProductPage, PreferenceResponse, PaymentResponse } from '../types/api'
+import type { ApiOrderResponse, ProductPage, PreferenceResponse, PaymentResponse, OrderPage } from '../types/api'
 
 export async function listPublicProductsApi(params?: {
   page?: number
@@ -41,13 +41,32 @@ export async function createPaymentPreferenceApi(body: PublicOrderPayload): Prom
 }
 
 export interface CreatePaymentPayload {
-  order_id: number
   card_token: string
+  customer_name: string
+  customer_phone?: string
+  customer_email?: string
+  channel: 'DELIVERY' | 'TABLE' | 'TAKEAWAY'
+  address?: string
+  notes?: string
+  items: {
+    product_id: string
+    quantity: number
+    extras?: string[]
+  }[]
 }
 
 export async function createPaymentApi(body: CreatePaymentPayload): Promise<PaymentResponse> {
   return apiRequest<PaymentResponse>('/api/public/create-payment', {
     method: 'POST',
     body,
+  })
+}
+
+export async function getMyOrdersApi(params?: {
+  page?: number
+  per_page?: number
+}): Promise<OrderPage> {
+  return apiRequest<OrderPage>('/api/public/orders', {
+    params: params as Record<string, string | number | undefined>,
   })
 }

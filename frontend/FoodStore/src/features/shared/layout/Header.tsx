@@ -12,6 +12,7 @@ import {
   LogOut,
   UserCircle,
   FlaskConical,
+  Truck,
 } from 'lucide-react'
 
 export default function Header() {
@@ -21,19 +22,24 @@ export default function Header() {
   const location = useLocation()
 
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager'
+  const isDelivery = user?.role === 'delivery'
 
   const navItems = [
-    { path: '/negocio/dashboard', label: 'Inicio', icon: LayoutDashboard },
-    { path: '/negocio/pedidos', label: 'Pedidos', icon: ClipboardList },
-    { path: '/negocio/cocina', label: 'Cocina', icon: Monitor },
-    ...(isAdminOrManager
-      ? [
-          { path: '/negocio/productos', label: 'Productos', icon: Package },
-          { path: '/negocio/categorias', label: 'Categorías', icon: Tag },
-          { path: '/negocio/ingredientes', label: 'Ingredientes', icon: FlaskConical },
-        ]
-      : []),
-    { path: '/negocio/clientes', label: 'Clientes', icon: Users },
+    ...(isDelivery
+      ? [{ path: '/negocio/reparto', label: 'Reparto', icon: Truck }]
+      : [
+          { path: '/negocio/dashboard', label: 'Inicio', icon: LayoutDashboard },
+          { path: '/negocio/pedidos', label: 'Pedidos', icon: ClipboardList },
+          { path: '/negocio/cocina', label: 'Cocina', icon: Monitor },
+          ...(isAdminOrManager
+            ? [
+                { path: '/negocio/productos', label: 'Productos', icon: Package },
+                { path: '/negocio/categorias', label: 'Categorías', icon: Tag },
+                { path: '/negocio/ingredientes', label: 'Ingredientes', icon: FlaskConical },
+              ]
+            : []),
+          { path: '/negocio/clientes', label: 'Clientes', icon: Users },
+        ]),
   ]
 
   const isActive = (path: string) => location.pathname === path

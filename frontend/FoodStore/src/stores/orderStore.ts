@@ -2,16 +2,17 @@ import { create } from 'zustand'
 import { listOrdersApi, updateOrderStatusApi } from '../api/orders'
 import { mapOrder } from '../api/mappers'
 
-const STATUS_REVERSE: Record<string, 'PENDING' | 'PREPARING' | 'READY' | 'SENT' | 'BILLED' | 'CANCELLED'> = {
+const STATUS_REVERSE: Record<string, 'PENDING' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'SENT' | 'BILLED' | 'CANCELLED'> = {
   pending: 'PENDING',
   preparing: 'PREPARING',
   ready: 'READY',
+  out_for_delivery: 'OUT_FOR_DELIVERY',
   sent: 'SENT',
   billed: 'BILLED',
   cancelled: 'CANCELLED',
 }
 
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'sent' | 'billed' | 'cancelled'
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'out_for_delivery' | 'sent' | 'billed' | 'cancelled'
 
 export interface OrderItem {
   id: string
@@ -36,6 +37,9 @@ export interface Order {
   notes: string | null
   createdAt: Date
   priority?: boolean
+  address: string | null
+  assignedToId: string | null
+  assignedToName: string | null
 }
 
 interface OrderState {
@@ -84,7 +88,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     }))
 
     try {
-      await updateOrderStatusApi(id, STATUS_REVERSE[status] as 'PENDING' | 'PREPARING' | 'READY' | 'SENT' | 'BILLED' | 'CANCELLED')
+      await updateOrderStatusApi(id, STATUS_REVERSE[status] as 'PENDING' | 'PREPARING' | 'READY' | 'OUT_FOR_DELIVERY' | 'SENT' | 'BILLED' | 'CANCELLED')
     } catch {
       // Revert on error — refetch
       await get().fetchOrders()

@@ -1,8 +1,10 @@
-import { ChevronLeft, User, Phone, Mail, MapPin } from 'lucide-react'
+import { ChevronLeft, User, Phone, Mail, CheckCircle } from 'lucide-react'
 import type { PublicOrderPayload } from '../../../api/public'
 import type { Page } from '../constants'
 import { CHANNELS } from '../constants'
 import { PublicBottomNav } from './PublicBottomNav'
+import { useAuthStore } from '../../../stores/authStore'
+import { DeliveryAddressForm } from './DeliveryAddressForm'
 
 interface CheckoutInfoViewProps {
   customerName: string
@@ -12,6 +14,7 @@ interface CheckoutInfoViewProps {
   address: string
   notes: string
   formError: string | null
+  fieldErrors?: Record<string, string>
   totalCartItems: number
   activePage: Page
   onNameChange: (value: string) => void
@@ -25,6 +28,13 @@ interface CheckoutInfoViewProps {
   onNavigate: (page: Page) => void
 }
 
+const inputBase = (hasError: boolean) =>
+  `w-full pl-10 pr-3 py-3 bg-surface-container-lowest rounded-xl text-body-sm focus:ring-2 outline-none placeholder:text-on-surface-variant/50 ${
+    hasError
+      ? 'border-2 border-red-500 text-red-700 focus:ring-red-300 focus:border-red-500'
+      : 'border border-outline-variant focus:ring-primary focus:border-primary-container'
+  }`
+
 export function CheckoutInfoView({
   customerName,
   customerPhone,
@@ -33,6 +43,7 @@ export function CheckoutInfoView({
   address,
   notes,
   formError,
+  fieldErrors = {},
   totalCartItems,
   activePage,
   onNameChange,
@@ -45,6 +56,8 @@ export function CheckoutInfoView({
   onNext,
   onNavigate,
 }: CheckoutInfoViewProps) {
+  const { isAuthenticated } = useAuthStore()
+
   return (
     <div className="min-h-screen bg-white text-on-surface flex flex-col pb-24">
       <header className="bg-surface-container-lowest px-4 py-4 flex items-center gap-3 border-b border-outline-variant">
@@ -63,9 +76,89 @@ export function CheckoutInfoView({
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {formError && (
-          <div className="bg-error-container text-on-error-container text-body-sm rounded-xl p-3">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-body-sm rounded-xl p-3">
             {formError}
           </div>
+        )}
+
+        {/* Si está logueado mostramos un resumen de sus datos */}
+        {isAuthenticated ? (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+            <p className="text-label-md font-label text-primary flex items-center gap-2">
+              <CheckCircle size={16} />
+              Datos vinculados a tu cuenta
+            </p>
+            <div className="text-body-sm text-on-surface space-y-1">
+              <p className="flex items-center gap-2">
+                <User size={14} className="text-primary shrink-0" />
+                {customerName}
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone size={14} className="text-primary shrink-0" />
+                {customerPhone || '—'}
+              </p>
+              {customerEmail && (
+                <p className="flex items-center gap-2">
+                  <Mail size={14} className="text-primary shrink-0" />
+                  {customerEmail}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className={`text-label-md font-label mb-1 block ${fieldErrors.name ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                Nombre *
+              </label>
+              <div className="relative">
+                <User size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.name ? 'text-red-500' : 'text-outline'}`} />
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => onNameChange(e.target.value)}
+                  placeholder="Tu nombre"
+                  className={inputBase(!!fieldErrors.name)}
+                />
+              </div>
+              {fieldErrors.name && (
+                <p className="text-red-500 text-body-sm mt-1">{fieldErrors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <label className={`text-label-md font-label mb-1 block ${fieldErrors.phone ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                Teléfono *
+              </label>
+              <div className="relative">
+                <Phone size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${fieldErrors.phone ? 'text-red-500' : 'text-outline'}`} />
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => onPhoneChange(e.target.value)}
+                  placeholder="+54 9 11 1234-5678"
+                  className={inputBase(!!fieldErrors.phone)}
+                />
+              </div>
+              {fieldErrors.phone && (
+                <p className="text-red-500 text-body-sm mt-1">{fieldErrors.phone}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-label-md font-label text-on-surface-variant mb-1 block">Email</label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+                <input
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => onEmailChange(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="w-full pl-10 pr-3 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-sm focus:ring-2 focus:ring-primary focus:border-primary-container outline-none placeholder:text-on-surface-variant/50"
+                />
+              </div>
+            </div>
+          </>
         )}
 
         <div>
@@ -91,61 +184,15 @@ export function CheckoutInfoView({
           </div>
         </div>
 
-        <div>
-          <label className="text-label-md font-label text-on-surface-variant mb-1 block">Nombre *</label>
-          <div className="relative">
-            <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => onNameChange(e.target.value)}
-              placeholder="Tu nombre"
-              className="w-full pl-10 pr-3 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-sm focus:ring-2 focus:ring-primary focus:border-primary-container outline-none placeholder:text-on-surface-variant/50"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-label-md font-label text-on-surface-variant mb-1 block">Teléfono *</label>
-          <div className="relative">
-            <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-            <input
-              type="tel"
-              value={customerPhone}
-              onChange={(e) => onPhoneChange(e.target.value)}
-              placeholder="+54 9 11 1234-5678"
-              className="w-full pl-10 pr-3 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-sm focus:ring-2 focus:ring-primary focus:border-primary-container outline-none placeholder:text-on-surface-variant/50"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-label-md font-label text-on-surface-variant mb-1 block">Email</label>
-          <div className="relative">
-            <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-            <input
-              type="email"
-              value={customerEmail}
-              onChange={(e) => onEmailChange(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              className="w-full pl-10 pr-3 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-sm focus:ring-2 focus:ring-primary focus:border-primary-container outline-none placeholder:text-on-surface-variant/50"
-            />
-          </div>
-        </div>
-
         {channel === 'DELIVERY' && (
           <div>
-            <label className="text-label-md font-label text-on-surface-variant mb-1 block">Dirección *</label>
-            <div className="relative">
-              <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => onAddressChange(e.target.value)}
-                placeholder="Calle y número"
-                className="w-full pl-10 pr-3 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-body-sm focus:ring-2 focus:ring-primary focus:border-primary-container outline-none placeholder:text-on-surface-variant/50"
-              />
-            </div>
+            <label className={`text-label-md font-label mb-2 block ${fieldErrors.address ? 'text-red-600' : 'text-on-surface-variant'}`}>
+              Dirección de entrega *
+            </label>
+            <DeliveryAddressForm address={address} onAddressChange={onAddressChange} />
+            {fieldErrors.address && (
+              <p className="text-red-500 text-body-sm mt-1">{fieldErrors.address}</p>
+            )}
           </div>
         )}
 

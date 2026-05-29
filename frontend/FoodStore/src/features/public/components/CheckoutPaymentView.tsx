@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ChevronLeft, Loader2, User, Phone, Mail, Bike, ShoppingBag, UtensilsCrossed, AlertTriangle, Check } from 'lucide-react'
 import { CardPayment } from '@mercadopago/sdk-react'
 import type { ApiProductResponse } from '../../../types/api'
 import type { PublicOrderPayload } from '../../../api/public'
-import { createPublicOrderApi, createPaymentApi } from '../../../api/public'
+import { createPaymentApi } from '../../../api/public'
 import type { CreatePaymentPayload } from '../../../api/public'
 import { formatPrice } from '../constants'
-import type { ApiOrderResponse } from '../../../types/api'
+import { TestCardHelper } from './TestCardHelper'
 
 interface CheckoutPaymentViewProps {
   items: { product: ApiProductResponse; quantity: number }[]
@@ -22,7 +22,7 @@ interface CheckoutPaymentViewProps {
   onClearCart: () => void
 }
 
-type PaymentState = 'creating-order' | 'form' | 'processing' | 'approved' | 'rejected' | 'error'
+type PaymentState = 'form' | 'processing' | 'approved' | 'rejected' | 'error'
 
 export function CheckoutPaymentView({
   items,
@@ -37,8 +37,8 @@ export function CheckoutPaymentView({
   onPaymentComplete,
   onClearCart,
 }: CheckoutPaymentViewProps) {
-  const [paymentState, setPaymentState] = useState<PaymentState>('creating-order')
-  const [order, setOrder] = useState<ApiOrderResponse | null>(null)
+  const [paymentState, setPaymentState] = useState<PaymentState>('form')
+  const [approvedOrderNumber, setApprovedOrderNumber] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
   const [brickKey, setBrickKey] = useState(0)
 
@@ -49,73 +49,36 @@ export function CheckoutPaymentView({
   const channelLabel = channel === 'TAKEAWAY' ? 'Take Away' : channel === 'DELIVERY' ? 'Delivery' : 'Mesa'
   const ChannelIcon = channel === 'DELIVERY' ? Bike : channel === 'TABLE' ? UtensilsCrossed : ShoppingBag
 
-  // ─── Step 1: Crear la orden al montar ──────────────────────────────
-  useEffect(() => {
-    let cancelled = false
-
-    const createOrder = async () => {
-      setPaymentState('creating-order')
-      setApiError(null)
-
-      try {
-        const payload: PublicOrderPayload = {
-          customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          customer_email: customerEmail.trim() || undefined,
-          channel,
-          address: channel === 'DELIVERY' ? address.trim() : undefined,
-          notes: notes.trim() || undefined,
-          items: items.map((item) => ({
-            product_id: item.product.id,
-            quantity: item.quantity,
-          })),
-        }
-
-        const createdOrder = await createPublicOrderApi(payload)
-
-        if (!cancelled) {
-          setOrder(createdOrder)
-          setPaymentState('form')
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const message =
-            err instanceof Error ? err.message : 'Hubo un error al crear el pedido. Intentalo de nuevo.'
-          setApiError(message)
-          setPaymentState('error')
-        }
-      }
-    }
-
-    createOrder()
-
-    return () => {
-      cancelled = true
-    }
-  }, []) // solo al montar
-
-  // ─── Step 2: Manejar el submit del CardPayment ────────────────────
-  const handlePaymentSubmit = async (param: { token: string }) => {
-    if (!order) return
-
+  // ─── Procesar pago (compartido entre brick y tarjeta guardada) ────
+  const processPayment = async (card_token: string) => {
     setPaymentState('processing')
     setApiError(null)
 
     try {
       const payload: CreatePaymentPayload = {
-        order_id: order.id,
-        card_token: param.token,
+        card_token,
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim() || undefined,
+        customer_email: customerEmail.trim() || undefined,
+        channel,
+        address: channel === 'DELIVERY' ? address.trim() : undefined,
+        notes: notes.trim() || undefined,
+        items: items.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+        })),
       }
 
       const result = await createPaymentApi(payload)
 
       if (result.status === 'approved') {
         setPaymentState('approved')
+        setApprovedOrderNumber(result.order_number)
         onClearCart()
 
         // Auto-redirect a confirmed después de 2 segundos
         setTimeout(() => {
-          onPaymentComplete(result.order_number)
+          onPaymentComplete(result.order_number!)
         }, 2000)
       } else if (result.status === 'rejected') {
         setPaymentState('rejected')
@@ -135,28 +98,20 @@ export function CheckoutPaymentView({
     }
   }
 
+  // ─── Submit del CardPayment brick ─────────────────────────────────
+  const handlePaymentSubmit = async (param: { token: string }) => {
+    await processPayment(param.token)
+  }
+
+  // El TestCardHelper genera el token via API de MP y lo pasa acá
+  const handleTestCardPayment = (token: string) => {
+    processPayment(token)
+  }
+
   const handleRetry = () => {
     setApiError(null)
     setPaymentState('form')
     setBrickKey((k) => k + 1)
-  }
-
-  // ─── Render: Creando orden ────────────────────────────────────────
-  if (paymentState === 'creating-order') {
-    return (
-      <div className="min-h-screen bg-white text-on-surface flex flex-col">
-        <header className="bg-surface-container-lowest px-4 py-4 flex items-center gap-3 border-b border-outline-variant">
-          <button onClick={onBack} className="p-2 hover:bg-surface-container rounded-lg transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-headline-lg-mobile font-headline">Confirmar pago</h1>
-        </header>
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <Loader2 size={32} className="animate-spin text-primary mb-4" />
-          <p className="text-body-lg text-on-surface-variant">Creando tu pedido...</p>
-        </div>
-      </div>
-    )
   }
 
   // ─── Render: Pago aprobado ────────────────────────────────────────
@@ -170,10 +125,10 @@ export function CheckoutPaymentView({
           <h2 className="text-headline-lg font-headline text-on-surface mb-2">¡Pago aprobado!</h2>
           <p className="text-body-lg text-on-surface-variant mb-6">Tu pedido ya está en cocina</p>
 
-          {order && (
+          {approvedOrderNumber && (
             <div className="bg-surface-container-lowest border border-primary/20 rounded-xl p-5 mb-6 inline-block">
               <p className="text-label-md font-label text-primary mb-1">Número de pedido</p>
-              <p className="text-display-lg font-display text-primary font-extrabold">{order.order_number}</p>
+              <p className="text-display-lg font-display text-primary font-extrabold">{approvedOrderNumber}</p>
             </div>
           )}
 
@@ -182,7 +137,7 @@ export function CheckoutPaymentView({
           </p>
 
           <button
-            onClick={() => order && onPaymentComplete(order.order_number)}
+            onClick={() => approvedOrderNumber && onPaymentComplete(approvedOrderNumber)}
             className="bg-primary text-on-primary font-bold py-4 px-8 rounded-xl active:scale-[0.98] transition-transform text-body-lg"
           >
             Ver mis pedidos
@@ -192,8 +147,8 @@ export function CheckoutPaymentView({
     )
   }
 
-  // ─── Render: Error general (no se pudo crear la orden) ────────────
-  if (paymentState === 'error' && !order) {
+  // ─── Render: Error de pago (no approved ni rejected, ej: pending) ─
+  if (paymentState === 'error') {
     return (
       <div className="min-h-screen bg-white text-on-surface flex flex-col">
         <header className="bg-surface-container-lowest px-4 py-4 flex items-center gap-3 border-b border-outline-variant">
@@ -203,11 +158,11 @@ export function CheckoutPaymentView({
           <h1 className="text-headline-lg-mobile font-headline">Confirmar pago</h1>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <AlertTriangle size={48} className="text-red-500 mb-4" />
-          <p className="text-body-lg text-on-surface-variant mb-2">No se pudo crear el pedido</p>
+          <AlertTriangle size={48} className="text-amber-500 mb-4" />
+          <p className="text-body-lg text-on-surface-variant mb-2">Pago en proceso</p>
           <p className="text-body-sm text-on-surface-variant mb-6">{apiError}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => { setPaymentState('form'); setBrickKey((k) => k + 1) }}
             className="bg-primary text-on-primary font-bold py-3 px-8 rounded-full active:scale-[0.98] transition-transform"
           >
             Reintentar
@@ -318,14 +273,20 @@ export function CheckoutPaymentView({
             {channel === 'DELIVERY' && address && ` — ${address}`}
           </p>
         </div>
+
+        {/* Helper de tarjetas de prueba (solo con VITE_MP_TEST_CARD_NUMBER configurado) */}
+        <TestCardHelper onTestPayment={handleTestCardPayment} />
       </div>
 
-      {/* Footer con CardPayment Brick o loading */}
+      {/* Footer con métodos de pago */}
       <div className="bg-surface-container-lowest border-t border-outline-variant p-4">
-        {paymentState === 'form' && order && (
-          <div key={brickKey}>
+        {paymentState === 'form' && (
+          <div key={brickKey} className="space-y-3">
             <CardPayment
-              initialization={{ amount: total }}
+              initialization={{
+                amount: total,
+                payer: { email: customerEmail || undefined },
+              }}
               onSubmit={handlePaymentSubmit}
               locale="es-AR"
               onError={(error) => {
@@ -334,7 +295,7 @@ export function CheckoutPaymentView({
                 setPaymentState('rejected')
               }}
             />
-            <p className="text-xs text-center text-gray-400 mt-3">
+            <p className="text-xs text-center text-gray-400">
               Pagá con débito o crédito. Tus datos están protegidos por Mercado Pago.
             </p>
           </div>

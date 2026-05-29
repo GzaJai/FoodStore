@@ -14,11 +14,14 @@ async def seed_database():
     # Create tables if they don't exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Safe migration: add Mercado Pago columns if missing
+        # Safe migration: add columns if missing
         for col_sql in [
             "ALTER TABLE orders ADD COLUMN mp_preference_id TEXT",
             "ALTER TABLE orders ADD COLUMN mp_payment_status TEXT DEFAULT 'pending'",
             "ALTER TABLE orders ADD COLUMN mp_payment_id INTEGER",
+            "ALTER TABLE orders ADD COLUMN address TEXT",
+            "ALTER TABLE orders ADD COLUMN assigned_to_id TEXT REFERENCES users(id)",
+            "ALTER TABLE orders ADD COLUMN out_for_delivery_at TIMESTAMP",
         ]:
             try:
                 await conn.execute(text(col_sql))
@@ -40,6 +43,7 @@ async def seed_database():
             User(id=str(uuid.uuid4()), name="Carlos Cocina", email="cocina@foodstore.com", phone="+54 9 11 2345-6789", password_hash=hash_password("cocina123"), role=UserRole.COOK),
             User(id=str(uuid.uuid4()), name="Maria Caja", email="caja@foodstore.com", phone="+54 9 11 3456-7890", password_hash=hash_password("caja123"), role=UserRole.CASHIER),
             User(id=str(uuid.uuid4()), name="Juan Gerente", email="gerente@foodstore.com", phone="+54 9 11 4567-8901", password_hash=hash_password("gerente123"), role=UserRole.MANAGER),
+            User(id=str(uuid.uuid4()), name="Pedro Reparto", email="reparto@foodstore.com", phone="+54 9 11 5678-9012", password_hash=hash_password("reparto123"), role=UserRole.DELIVERY),
         ]
         db.add_all(users)
         await db.flush()

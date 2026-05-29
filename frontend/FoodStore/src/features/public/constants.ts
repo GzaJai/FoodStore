@@ -37,7 +37,7 @@ export const CATEGORY_EMOJI: Record<string, string> = {
   OTROS: '📦',
 }
 
-export type Page = 'catalog' | 'cart' | 'checkout-info' | 'checkout-payment' | 'confirmed' | 'product-detail' | 'profile'
+export type Page = 'catalog' | 'cart' | 'checkout-info' | 'checkout-payment' | 'confirmed' | 'product-detail' | 'profile' | 'login' | 'register' | 'account'
 
 export type SortOption = 'default' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc'
 

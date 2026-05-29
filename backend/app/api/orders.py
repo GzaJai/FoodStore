@@ -5,10 +5,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import joinedload
 from app.config.database import get_db
 from app.models.models import Order, OrderItem, OrderStatus, OrderChannel, Product, User, UserRole
-from app.schemas.schemas import OrderCreate, OrderStatusUpdate, OrderResponse
-from app.core.auth import get_current_user
+from app.schemas.schemas import OrderCreate, OrderStatusUpdate, OrderResponse, MessageResponse, AssignDeliveryRequest
+from app.core.auth import get_current_user, require_role
 from app.ws.manager import manager
 
 logger = logging.getLogger("foodstore.api.orders")
@@ -18,7 +19,8 @@ router = APIRouter(prefix="/api/orders", tags=["4. Pedidos"])
 VALID_TRANSITIONS: dict[OrderStatus, list[OrderStatus]] = {
     OrderStatus.PENDING: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
     OrderStatus.PREPARING: [OrderStatus.READY, OrderStatus.CANCELLED],
-    OrderStatus.READY: [OrderStatus.SENT, OrderStatus.BILLED, OrderStatus.CANCELLED],
+    OrderStatus.READY: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.SENT, OrderStatus.BILLED, OrderStatus.CANCELLED],
+    OrderStatus.OUT_FOR_DELIVERY: [OrderStatus.BILLED],
     OrderStatus.SENT: [OrderStatus.BILLED],
     OrderStatus.BILLED: [],
     OrderStatus.CANCELLED: [],
@@ -68,7 +70,7 @@ async def list_orders(
 
     responses = []
     for order in orders:
-        await db.refresh(order, ["items"])
+        await db.refresh(order, ["items", "assigned_to"])
         responses.append(OrderResponse.model_validate(order))
 
     return responses
@@ -85,10 +87,9 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    from sqlalchemy.orm import joinedload
     result = await db.execute(
         select(Order)
-        .options(joinedload(Order.items))
+        .options(joinedload(Order.items), joinedload(Order.assigned_to))
         .where(Order.id == order_id)
     )
     order = result.unique().scalar_one_or_none()
@@ -147,6 +148,7 @@ async def create_order(
         channel=body.channel,
         priority=body.priority,
         notes=body.notes,
+        address=body.address,
         subtotal=subtotal,
         tax=tax,
         total=total,
@@ -180,7 +182,8 @@ async def create_order(
 
 - **PENDING** → PREPARING, CANCELLED
 - **PREPARING** → READY, CANCELLED
-- **READY** → SENT, CANCELLED
+- **READY** → OUT_FOR_DELIVERY, SENT, BILLED, CANCELLED
+- **OUT_FOR_DELIVERY** → BILLED
 - **SENT** → BILLED
 - **BILLED** → (terminal)
 - **CANCELLED** → (terminal)
@@ -219,6 +222,11 @@ async def update_order_status(
 
     if body.status == OrderStatus.PREPARING:
         order.prepared_at = now
+    elif body.status == OrderStatus.OUT_FOR_DELIVERY:
+        order.out_for_delivery_at = now
+        # Delivery person can self-assign when marking as out_for_delivery
+        if user.role == UserRole.DELIVERY and order.assigned_to_id is None:
+            order.assigned_to_id = user.id
     elif body.status == OrderStatus.SENT:
         order.sent_at = now
     elif body.status == OrderStatus.BILLED:
@@ -272,3 +280,73 @@ async def cancel_order(
     order.cancelled_at = datetime.now(timezone.utc)
     await db.commit()
     return {"success": True, "message": "Pedido cancelado"}
+
+
+@router.patch(
+    "/{order_id}/assign",
+    response_model=OrderResponse,
+    summary="Asignar repartidor",
+    description="Asigna un repartidor (delivery person) a un pedido. Solo admin, manager y cashier pueden asignar.",
+)
+async def assign_delivery(
+    order_id: int,
+    body: AssignDeliveryRequest,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if user.role not in (UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para asignar repartidores")
+
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
+
+    # Verificar que el delivery person existe y es DELIVERY
+    dp_result = await db.execute(
+        select(User).where(User.id == body.delivery_person_id, User.role == UserRole.DELIVERY)
+    )
+    delivery_person = dp_result.scalar_one_or_none()
+    if not delivery_person:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Repartidor no encontrado")
+
+    order.assigned_to_id = delivery_person.id
+    await db.commit()
+    await db.refresh(order, ["items", "assigned_to"])
+
+    await manager.broadcast({
+        "type": "order_updated",
+        "payload": {
+            "order_id": order.id,
+            "order_number": order.order_number,
+            "status": order.status.value,
+        },
+    })
+
+    return OrderResponse.model_validate(order)
+
+
+@router.get(
+    "/my-delivery",
+    response_model=list[OrderResponse],
+    summary="Mis pedidos de delivery",
+    description="Retorna los pedidos asignados al repartidor autenticado que están en estado OUT_FOR_DELIVERY.",
+)
+async def my_delivery_orders(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if user.role != UserRole.DELIVERY:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo repartidores pueden ver esta ruta")
+
+    result = await db.execute(
+        select(Order)
+        .options(joinedload(Order.items), joinedload(Order.assigned_to))
+        .where(
+            Order.assigned_to_id == user.id,
+            Order.status == OrderStatus.OUT_FOR_DELIVERY,
+        )
+        .order_by(Order.created_at.asc())
+    )
+    orders = result.unique().scalars().all()
+    return [OrderResponse.model_validate(o) for o in orders]

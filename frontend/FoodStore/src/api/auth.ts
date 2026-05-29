@@ -9,6 +9,18 @@ export async function loginApi(email: string, password: string): Promise<ApiLogi
   })
 }
 
+export async function registerApi(data: {
+  name: string
+  email: string
+  password: string
+  phone?: string
+}): Promise<ApiLoginResponse> {
+  return apiRequest<ApiLoginResponse>('/api/public/register', {
+    method: 'POST',
+    body: data,
+  })
+}
+
 export async function logoutApi(): Promise<ApiMessageResponse> {
   return apiRequest<ApiMessageResponse>('/api/auth/logout', {
     method: 'POST',

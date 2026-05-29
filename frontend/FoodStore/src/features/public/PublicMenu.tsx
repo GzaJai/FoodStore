@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
+import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
 import { listPublicProductsApi, type PublicOrderPayload } from '../../api/public'
 import type { ApiProductResponse } from '../../types/api'
@@ -12,6 +13,9 @@ import { CartView } from './components/CartView'
 import { CheckoutInfoView } from './components/CheckoutInfoView'
 import { CheckoutPaymentView } from './components/CheckoutPaymentView'
 import { ConfirmedView } from './components/ConfirmedView'
+import { LoginView } from './components/LoginView'
+import { RegisterView } from './components/RegisterView'
+import { AccountView } from './components/AccountView'
 
 export default function PublicMenu() {
   const [products, setProducts] = useState<ApiProductResponse[]>([])
@@ -22,6 +26,7 @@ export default function PublicMenu() {
   const [sortBy, setSortBy] = useState<SortOption>('default')
   const [page, setPage] = useState<Page>('catalog')
   const { items, addItem, updateQuantity, totalItems, clearCart } = useCartStore()
+  const { isAuthenticated, user, checkAuth, logout } = useAuthStore()
 
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -31,6 +36,7 @@ export default function PublicMenu() {
   const [notes, setNotes] = useState('')
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const [selectedProduct, setSelectedProduct] = useState<ApiProductResponse | null>(null)
   const [detailQuantity, setDetailQuantity] = useState(1)
@@ -44,6 +50,11 @@ export default function PublicMenu() {
       .catch(() => setError('No pudimos cargar el menú. Intentalo de nuevo más tarde.'))
       .finally(() => setIsLoading(false))
   }, [])
+
+  // ─── Verificar sesión al montar ────────────────────────────────────
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   // ─── Detectar retorno de Mercado Pago ─────────────────────────────
   useEffect(() => {
@@ -67,6 +78,7 @@ export default function PublicMenu() {
   const navigate = (target: Page) => {
     setPage(target)
     setFormError(null)
+    setFieldErrors({})
   }
 
   const goToDetail = (product: ApiProductResponse) => {
@@ -83,28 +95,57 @@ export default function PublicMenu() {
 
   const goToCheckoutInfo = () => {
     if (items.length === 0) return
-    setCustomerName('')
-    setCustomerPhone('')
-    setCustomerEmail('')
+    // Si está logueado, pre-cargamos sus datos automáticamente
+    setCustomerName(isAuthenticated ? user?.name ?? '' : '')
+    setCustomerPhone(isAuthenticated ? user?.phone ?? '' : '')
+    setCustomerEmail(isAuthenticated ? user?.email ?? '' : '')
     setChannel('TAKEAWAY')
     setAddress('')
     setNotes('')
     setFormError(null)
+    setFieldErrors({})
     setPage('checkout-info')
   }
 
   const handleNextToPayment = () => {
-    if (!customerName.trim()) { setFormError('Ingresá tu nombre'); return }
-    if (!customerPhone.trim()) { setFormError('Ingresá tu teléfono'); return }
-    if (channel === 'DELIVERY' && !address.trim()) { setFormError('Ingresá la dirección'); return }
+    const errors: Record<string, string> = {}
+    if (!isAuthenticated) {
+      if (!customerName.trim()) errors.name = 'Ingresá tu nombre'
+      if (!customerPhone.trim()) errors.phone = 'Ingresá tu teléfono'
+    }
+    if (channel === 'DELIVERY' && !address.trim()) errors.address = 'Ingresá la dirección'
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+    setFieldErrors({})
     setFormError(null)
     setPage('checkout-payment')
+  }
+
+  // Limpiar error del campo cuando el usuario empieza a tipear
+  const handleNameChange = (value: string) => {
+    setCustomerName(value)
+    setFieldErrors((prev) => { const { name: _, ...rest } = prev; return rest })
+  }
+  const handlePhoneChange = (value: string) => {
+    setCustomerPhone(value)
+    setFieldErrors((prev) => { const { phone: _, ...rest } = prev; return rest })
+  }
+  const handleAddressChange = (value: string) => {
+    setAddress(value)
+    setFieldErrors((prev) => { const { address: _, ...rest } = prev; return rest })
   }
 
   const handlePaymentComplete = (orderNumber: string) => {
     setOrderNumber(orderNumber)
     clearCart()
     setPage('confirmed')
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    setPage('profile')
   }
 
   const handleAddToCart = () => {
@@ -167,15 +208,8 @@ export default function PublicMenu() {
     case 'profile':
       return (
         <ProfileView
-          customerName={customerName}
-          customerPhone={customerPhone}
-          customerEmail={customerEmail}
           totalCartItems={totalItems()}
           activePage={page}
-          onNameChange={setCustomerName}
-          onPhoneChange={setCustomerPhone}
-          onEmailChange={setCustomerEmail}
-          onSave={goBackToCatalog}
           onBack={goBackToCatalog}
           onNavigate={navigate}
         />
@@ -206,11 +240,12 @@ export default function PublicMenu() {
           formError={formError}
           totalCartItems={totalItems()}
           activePage={page}
-          onNameChange={setCustomerName}
-          onPhoneChange={setCustomerPhone}
+          fieldErrors={fieldErrors}
+          onNameChange={handleNameChange}
+          onPhoneChange={handlePhoneChange}
           onEmailChange={setCustomerEmail}
           onChannelChange={setChannel}
-          onAddressChange={setAddress}
+          onAddressChange={handleAddressChange}
           onNotesChange={setNotes}
           onBack={() => setPage('cart')}
           onNext={handleNextToPayment}
@@ -232,6 +267,32 @@ export default function PublicMenu() {
           onBack={() => setPage('checkout-info')}
           onPaymentComplete={handlePaymentComplete}
           onClearCart={clearCart}
+        />
+      )
+
+    case 'login':
+      return (
+        <LoginView
+          onBack={() => setPage('profile')}
+          onLoggedIn={() => setPage('account')}
+          onGoToRegister={() => setPage('register')}
+        />
+      )
+
+    case 'register':
+      return (
+        <RegisterView
+          onBack={() => setPage('profile')}
+          onRegistered={() => setPage('account')}
+          onGoToLogin={() => setPage('login')}
+        />
+      )
+
+    case 'account':
+      return (
+        <AccountView
+          onBack={() => setPage('profile')}
+          onLogout={handleLogout}
         />
       )
 

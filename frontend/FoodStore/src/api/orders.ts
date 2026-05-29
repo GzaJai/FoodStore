@@ -30,3 +30,14 @@ export async function updateOrderStatusApi(id: number, status: ApiOrderStatus): 
 export async function cancelOrderApi(id: number): Promise<ApiMessageResponse> {
   return apiRequest<ApiMessageResponse>(`/api/orders/${id}`, { method: 'DELETE' })
 }
+
+export async function myDeliveryOrdersApi(): Promise<ApiOrderResponse[]> {
+  return apiRequest<ApiOrderResponse[]>('/api/orders/my-delivery')
+}
+
+export async function assignDeliveryApi(orderId: number, deliveryPersonId: string): Promise<ApiOrderResponse> {
+  return apiRequest<ApiOrderResponse>(`/api/orders/${orderId}/assign`, {
+    method: 'PATCH',
+    body: { delivery_person_id: deliveryPersonId },
+  })
+}

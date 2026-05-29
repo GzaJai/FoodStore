@@ -14,12 +14,15 @@ class UserRole(str, enum.Enum):
     MANAGER = "MANAGER"
     COOK = "COOK"
     CASHIER = "CASHIER"
+    DELIVERY = "DELIVERY"
+    CUSTOMER = "CUSTOMER"
 
 
 class OrderStatus(str, enum.Enum):
     PENDING = "PENDING"
     PREPARING = "PREPARING"
     READY = "READY"
+    OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY"
     SENT = "SENT"
     BILLED = "BILLED"
     CANCELLED = "CANCELLED"
@@ -64,7 +67,8 @@ class User(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_login_at = Column(DateTime, nullable=True)
 
-    orders_created = relationship("Order", back_populates="created_by")
+    orders_created = relationship("Order", back_populates="created_by", foreign_keys="Order.created_by_id")
+    delivery_orders = relationship("Order", back_populates="assigned_to", foreign_keys="Order.assigned_to_id")
     audit_logs = relationship("AuditLog", back_populates="user")
 
 
@@ -81,23 +85,27 @@ class Order(Base):
     channel = Column(Enum(OrderChannel), nullable=False, index=True)
     priority = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
+    address = Column(String, nullable=True)
     subtotal = Column(Numeric(10, 2), default=0)
     tax = Column(Numeric(10, 2), default=0)
     total = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     prepared_at = Column(DateTime, nullable=True)
+    out_for_delivery_at = Column(DateTime, nullable=True)
     sent_at = Column(DateTime, nullable=True)
     billed_at = Column(DateTime, nullable=True)
     cancelled_at = Column(DateTime, nullable=True)
     cancel_reason = Column(String, nullable=True)
     created_by_id = Column(String, ForeignKey("users.id"), nullable=True)
+    assigned_to_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     mp_preference_id = Column(String, nullable=True, index=True)
     mp_payment_status = Column(String, nullable=True)
     mp_payment_id = Column(Integer, nullable=True, index=True)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
-    created_by = relationship("User", back_populates="orders_created")
+    created_by = relationship("User", back_populates="orders_created", foreign_keys=[created_by_id])
+    assigned_to = relationship("User", back_populates="delivery_orders", foreign_keys=[assigned_to_id])
 
 
 class OrderItem(Base):

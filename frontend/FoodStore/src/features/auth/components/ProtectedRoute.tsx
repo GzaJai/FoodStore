@@ -8,6 +8,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   manager: ['dashboard', 'pedidos', 'productos', 'clientes', 'perfil'],
   cook: ['cocina', 'perfil'],
   cashier: ['pedidos', 'perfil'],
+  delivery: ['reparto', 'perfil'],
 }
 
 function getDefaultRoute(role?: string): string {
@@ -45,6 +46,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/negocio/login" state={{ from: location }} replace />
+  }
+
+  // Los clientes NO pueden acceder a NADA del negocio
+  if (user?.role === 'customer') {
+    return <Navigate to="/" replace />
   }
 
   const currentPath = location.pathname.replace(/^\/negocio\//, '')

@@ -14,7 +14,7 @@ export interface ApiLoginResponse {
 }
 
 // --- Users ---
-export type ApiUserRole = 'ADMIN' | 'MANAGER' | 'COOK' | 'CASHIER'
+export type ApiUserRole = 'ADMIN' | 'MANAGER' | 'COOK' | 'CASHIER' | 'DELIVERY' | 'CUSTOMER'
 
 export interface ApiUserResponse {
   id: string
@@ -118,6 +118,7 @@ export type ApiOrderStatus =
   | 'PENDING'
   | 'PREPARING'
   | 'READY'
+  | 'OUT_FOR_DELIVERY'
   | 'SENT'
   | 'BILLED'
   | 'CANCELLED'
@@ -145,6 +146,9 @@ export interface ApiOrderResponse {
   channel: ApiOrderChannel
   priority: boolean
   notes: string | null
+  address: string | null
+  assigned_to_id: string | null
+  assigned_to_name: string | null
   subtotal: number
   tax: number
   total: number
@@ -232,6 +236,11 @@ export interface ProductPage {
   meta: PaginationMeta
 }
 
+export interface OrderPage {
+  items: ApiOrderResponse[]
+  meta: PaginationMeta
+}
+
 export interface PreferenceResponse {
   init_point: string
   preference_id: string
@@ -243,8 +252,8 @@ export interface PaymentResponse {
   status: string
   status_detail: string | null
   mp_payment_id: number | null
-  order_id: number
-  order_number: string
+  order_id: number | null
+  order_number: string | null
 }
 
 export interface IngredientPage {

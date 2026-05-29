@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 from app.models.models import UserRole, OrderStatus, OrderChannel
@@ -155,11 +155,16 @@ class OrderCreate(BaseModel):
     channel: OrderChannel
     priority: bool = False
     notes: Optional[str] = None
+    address: Optional[str] = None
     items: list[OrderItemCreate]
 
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
+
+
+class AssignDeliveryRequest(BaseModel):
+    delivery_person_id: str
 
 
 class OrderItemResponse(BaseModel):
@@ -196,6 +201,9 @@ class OrderResponse(BaseModel):
     channel: OrderChannel
     priority: bool
     notes: Optional[str] = None
+    address: Optional[str] = None
+    assigned_to_id: Optional[str] = None
+    assigned_to_name: Optional[str] = None
     subtotal: float
     tax: float
     total: float
@@ -204,6 +212,19 @@ class OrderResponse(BaseModel):
     items: list[OrderItemResponse] = []
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_assigned_to_name(cls, data):
+        from app.models.models import Order as OrderModel
+        if isinstance(data, OrderModel) and data.assigned_to_id:
+            from sqlalchemy import inspect as sa_inspect
+            insp = sa_inspect(data)
+            # Solo accedemos a assigned_to si está cargado explícitamente
+            # (lazy loading no funciona en contexto async)
+            if "assigned_to" not in insp.unloaded and data.assigned_to_name is None:
+                object.__setattr__(data, "assigned_to_name", data.assigned_to.name)
+        return data
 
 
 # ==========================================
@@ -353,5 +374,14 @@ class PaymentResponse(BaseModel):
     status: str
     status_detail: str | None = None
     mp_payment_id: int | None = None
-    order_id: int
-    order_number: str
+    order_id: int | None = None
+    order_number: str | None = None
+
+
+# ==========================================
+# ORDER HISTORY (customer)
+# ==========================================
+
+class OrderPage(BaseModel):
+    items: list["OrderResponse"]
+    meta: PaginationMeta

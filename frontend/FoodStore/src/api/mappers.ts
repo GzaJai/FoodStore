@@ -21,6 +21,7 @@ const STATUS_MAP: Record<ApiOrderStatus, OrderStatus> = {
   PENDING: 'pending',
   PREPARING: 'preparing',
   READY: 'ready',
+  OUT_FOR_DELIVERY: 'out_for_delivery',
   SENT: 'sent',
   BILLED: 'billed',
   CANCELLED: 'cancelled',
@@ -30,6 +31,7 @@ const STATUS_REVERSE: Record<string, ApiOrderStatus> = {
   pending: 'PENDING',
   preparing: 'PREPARING',
   ready: 'READY',
+  out_for_delivery: 'OUT_FOR_DELIVERY',
   sent: 'SENT',
   billed: 'BILLED',
   cancelled: 'CANCELLED',
@@ -62,6 +64,8 @@ const ROLE_MAP: Record<ApiUserRole, User['role']> = {
   MANAGER: 'manager',
   COOK: 'cook',
   CASHIER: 'cashier',
+  DELIVERY: 'delivery',
+  CUSTOMER: 'customer',
 }
 
 export function mapRole(apiRole: ApiUserRole): User['role'] {
@@ -99,6 +103,9 @@ export function mapOrder(apiOrder: ApiOrderResponse): Order {
     // La API devuelve datetime sin timezone (UTC implícito). Si no tiene Z ni offset, se lo agregamos.
     createdAt: new Date(apiOrder.created_at + (/(Z|[+-]\d{2}:?\d{2})$/.test(apiOrder.created_at) ? '' : 'Z')),
     priority: apiOrder.priority,
+    address: apiOrder.address,
+    assignedToId: apiOrder.assigned_to_id,
+    assignedToName: apiOrder.assigned_to_name,
   }
 }
 
